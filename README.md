@@ -30,7 +30,12 @@ earth/
 │       ├── __init__.py
 │       └── person.py      # Person profile generator
 ├── logs/                  # Application logs
-│   └── loader/           # Loader-specific logs
+│   └── loader/            # Loader-specific logs
+├── test/
+│   └── unit_test.py
+├── setup.sh
+├── Makefile
+├── requirements.txt
 └── README.md
 ```
 
@@ -45,7 +50,7 @@ earth/
 
 ```bash
 # Clone repository
-git clone <repository-url>
+git clone https://github.com/ChrisAdan/earth
 cd earth
 
 # Install package in development mode
