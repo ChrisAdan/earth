@@ -1,0 +1,37 @@
+2025-08-13 06:39:54,922 - earth.loader - INFO - Connecting to DuckDB database: earth.duckdb
+2025-08-13 06:39:54,929 - earth.loader - INFO - Ensured schema 'raw' exists
+2025-08-13 06:39:54,948 - earth.loader - INFO - Table test.test_persons exists: False
+2025-08-13 06:39:54,949 - earth.loader - INFO - Truncating and writing 2 rows to test.test_persons
+2025-08-13 06:39:54,951 - earth.loader - ERROR - Error in operate_on_table: Catalog Error: Schema with name test does not exist!
+2025-08-13 06:45:37,127 - earth.loader - INFO - Connecting to DuckDB database: earth_test.duckdb
+2025-08-13 06:45:37,167 - earth.loader - INFO - Ensured schema 'test' exists
+2025-08-13 06:45:37,194 - earth.loader - INFO - Table test.test_persons exists: False
+2025-08-13 06:45:37,194 - earth.loader - INFO - Truncating and writing 2 rows to test.test_persons
+2025-08-13 06:45:37,205 - earth.loader - INFO - Successfully wrote data to test.test_persons
+2025-08-13 06:45:37,206 - earth.loader - INFO - Table test.test_persons exists: True
+2025-08-13 06:45:37,206 - earth.loader - INFO - Reading from test.test_persons with query: SELECT COUNT(*) as count FROM test.test_persons
+2025-08-13 06:45:37,207 - earth.loader - INFO - Read 1 rows from test.test_persons
+2025-08-13 06:53:00,971 - earth.loader - INFO - Connecting to DuckDB database: earth_test.duckdb
+2025-08-13 06:53:00,980 - earth.loader - INFO - Ensured schema 'test' exists
+2025-08-13 06:53:00,994 - earth.loader - INFO - Table test.test_persons exists: False
+2025-08-13 06:53:00,994 - earth.loader - INFO - Truncating and writing 2 rows to test.test_persons
+2025-08-13 06:53:00,999 - earth.loader - INFO - Successfully wrote data to test.test_persons
+2025-08-13 06:53:01,001 - earth.loader - INFO - Table test.test_persons exists: True
+2025-08-13 06:53:01,001 - earth.loader - INFO - Reading from test.test_persons with query: SELECT COUNT(*) as count FROM test.test_persons
+2025-08-13 06:53:01,002 - earth.loader - INFO - Read 1 rows from test.test_persons
+2025-08-13 06:54:04,580 - earth.loader - INFO - Connecting to DuckDB database: earth_test.duckdb
+2025-08-13 06:54:04,588 - earth.loader - INFO - Ensured schema 'test' exists
+2025-08-13 06:54:04,602 - earth.loader - INFO - Table test.test_persons exists: False
+2025-08-13 06:54:04,602 - earth.loader - INFO - Truncating and writing 2 rows to test.test_persons
+2025-08-13 06:54:04,608 - earth.loader - INFO - Successfully wrote data to test.test_persons
+2025-08-13 06:54:04,610 - earth.loader - INFO - Table test.test_persons exists: True
+2025-08-13 06:54:04,610 - earth.loader - INFO - Reading from test.test_persons with query: SELECT COUNT(*) as count FROM test.test_persons
+2025-08-13 06:54:04,611 - earth.loader - INFO - Read 1 rows from test.test_persons
+2025-08-13 06:55:03,037 - earth.loader - INFO - Connecting to DuckDB database: earth_test.duckdb
+2025-08-13 06:55:03,052 - earth.loader - INFO - Ensured schema 'test' exists
+2025-08-13 06:55:03,066 - earth.loader - INFO - Table test.test_persons exists: False
+2025-08-13 06:55:03,066 - earth.loader - INFO - Truncating and writing 2 rows to test.test_persons
+2025-08-13 06:55:03,072 - earth.loader - INFO - Successfully wrote data to test.test_persons
+2025-08-13 06:55:03,074 - earth.loader - INFO - Table test.test_persons exists: True
+2025-08-13 06:55:03,074 - earth.loader - INFO - Reading from test.test_persons with query: SELECT COUNT(*) as count FROM test.test_persons
+2025-08-13 06:55:03,075 - earth.loader - INFO - Read 1 rows from test.test_persons

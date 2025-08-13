@@ -1,0 +1,14 @@
+# Core dependencies
+pandas>=2.0.0
+duckdb>=0.9.0
+faker>=20.0.0
+typing-extensions>=4.0.0
+
+# Development dependencies (optional)
+pytest>=7.0.0
+black>=22.0.0
+mypy>=1.0.0
+
+# Future orchestration dependencies
+dbt-duckdb>=1.6.0
+prefect>=2.14.0

@@ -1,0 +1,5 @@
+2025-08-12 21:05:44,243 - earth.loader - INFO - Connecting to DuckDB database: earth.duckdb
+2025-08-12 21:05:44,262 - earth.loader - INFO - Ensured schema 'raw' exists
+2025-08-12 21:05:44,296 - earth.loader - INFO - Table test_schema.test_persons exists: False
+2025-08-12 21:05:44,296 - earth.loader - INFO - Truncating and writing 2 rows to test_schema.test_persons
+2025-08-12 21:05:44,304 - earth.loader - ERROR - Error in operate_on_table: Catalog Error: Schema with name test_schema does not exist!
