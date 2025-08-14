@@ -15,18 +15,40 @@ import pandas as pd
 @dataclass
 class DatabaseConfig:
     """Configuration for DuckDB connection."""
-    db_path: str = "earth.duckdb"
+    data_dir: Path = Path("data")
+    env: str = "dev"
     schema_name: str = "raw"
     
-    @classmethod
-    def for_testing(cls, db_path: str = "earth_test.duckdb") -> "DatabaseConfig":
-        """Create a test configuration."""
-        return cls(db_path=db_path, schema_name="test")
+    @property
+    def db_path(self) -> Path:
+        """Generate database path based on environment."""
+        db_filename = f"earth_{self.env}.duckdb"
+        return self.data_dir / self.env / db_filename
+    
+    def __post_init__(self):
+        """Ensure the directory exists."""
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
     
     @classmethod
-    def for_raw(cls, db_path: str = "earth.duckdb") -> "DatabaseConfig":
-        """Create a raw/production configuration."""
-        return cls(db_path=db_path, schema_name="raw")   
+    def for_dev(cls, schema_name: str = "raw") -> "DatabaseConfig":
+        """Create a development configuration."""
+        return cls(env="dev", schema_name=schema_name)
+    
+    @classmethod
+    def for_prod(cls, schema_name: str = "raw") -> "DatabaseConfig":
+        """Create a production configuration."""
+        return cls(env="prod", schema_name=schema_name)
+    
+    @classmethod
+    def for_testing(cls, schema_name: str = "test") -> "DatabaseConfig":
+        """Create a test configuration (uses dev environment with test schema)."""
+        return cls(env="dev", schema_name=schema_name)
+    
+    def __str__(self) -> str:
+        """String representation showing key config details."""
+        return f"DatabaseConfig(env={self.env}, db_path={self.db_path}, schema={self.schema_name})"
+
+ 
 
 def setup_logging() -> logging.Logger:
     """Set up logging configuration."""
@@ -88,7 +110,7 @@ def log(message: str, level: str = "info") -> None:
 
 def connect_to_duckdb(config: Optional[DatabaseConfig] = None) -> duckdb.DuckDBPyConnection:
     """
-    Create and return DuckDB connection to earth.duckdb.
+    Create and return DuckDB connection.
     
     Args:
         config: Database configuration object
@@ -97,11 +119,11 @@ def connect_to_duckdb(config: Optional[DatabaseConfig] = None) -> duckdb.DuckDBP
         DuckDB connection object
     """
     if config is None:
-        config = DatabaseConfig()
+        config = DatabaseConfig.for_dev()
     
     try:
-        log(f"Connecting to DuckDB database: {config.db_path}")
-        conn = duckdb.connect(config.db_path)
+        log(f"Connecting to DuckDB: {config}")
+        conn = duckdb.connect(str(config.db_path))  # Convert Path to string
         
         # Create schema if it doesn't exist
         conn.execute(f"CREATE SCHEMA IF NOT EXISTS {config.schema_name}")
@@ -112,6 +134,7 @@ def connect_to_duckdb(config: Optional[DatabaseConfig] = None) -> duckdb.DuckDBP
     except Exception as e:
         log(f"Failed to connect to DuckDB: {str(e)}", "error")
         raise
+
 
 
 def operate_on_table(
