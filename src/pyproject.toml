@@ -32,8 +32,8 @@ dev = [
 py-modules = ["loader", "utils"]
 
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["generators*"]
+where = ["."]
+include = ["generators"]
 
 [tool.setuptools.package-dir]
 "" = "."

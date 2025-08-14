@@ -1,5 +1,6 @@
 """
 Person profile generator with sanitization layer for realistic US data.
+Updated to use career progression helper for realistic job/salary correlation.
 """
 
 import re
@@ -10,10 +11,8 @@ from faker import Faker
 import uuid
 import random
 import numpy as np
-from utils import MIN_AGE, MAX_AGE, US_JOB_TITLES, EMAIL_DOMAINS
-
-
-
+from utils import MIN_AGE, MAX_AGE, EMAIL_DOMAINS
+from generators.career import generate_career_profile, CareerLevel
 
 
 @dataclass
@@ -36,9 +35,9 @@ class PersonProfile:
     state: str
     zip_code: str
     
-    # Professional information
+    # Professional information (updated to use career helper)
     job_title: str
-    company: str
+    career_level: str  # CL-1 through CL-8 equivalent
     employment_status: str
     annual_income: int
     
@@ -192,64 +191,6 @@ class PersonGenerator:
         # Format as (XXX) XXX-XXXX
         return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
     
-    def _generate_updated_income(self, age: int, education: str, employment_status: str) -> int:
-        """Generate realistic 2025 US income based on current statistics."""
-        
-        # Handle special employment cases first
-        if employment_status == "Unemployed":
-            return random.randint(0, 8000)
-        elif employment_status == "Student":
-            return random.randint(0, 25000)
-        elif employment_status == "Retired":
-            return random.randint(25000, 85000)
-        
-        # Updated base income for 2025 (median ~$62K)
-        base_income = 45000
-        
-        # Education multiplier (updated for 2025)
-        education_multipliers = {
-            "High School": 1.0,
-            "Some College": 1.15,
-            "Associate Degree": 1.3,
-            "Bachelor's Degree": 1.6,
-            "Master's Degree": 2.0,
-            "Doctoral Degree": 2.5
-        }
-        
-        # Age-based income progression (updated for current market)
-        if age < 25:
-            age_multiplier = 0.75
-        elif age < 35:
-            age_multiplier = 1.0
-        elif age < 45:
-            age_multiplier = 1.4
-        elif age < 55:
-            age_multiplier = 1.7
-        elif age < 65:
-            age_multiplier = 1.6
-        else:
-            age_multiplier = 0.9
-        
-        # Employment status multiplier
-        employment_multipliers = {
-            "Full-time": 1.0,
-            "Part-time": 0.35,
-            "Contract": 1.3,
-            "Freelance": 0.85,
-            "Self-employed": 1.2
-        }
-        
-        income = int(
-            base_income * 
-            education_multipliers.get(education, 1.0) * 
-            age_multiplier * 
-            employment_multipliers.get(employment_status, 1.0) *
-            random.uniform(0.7, 1.8)  # Increased variation for income inequality
-        )
-        
-        # Round to nearest 1000
-        return round(income, -3)
-    
     def _map_faker_gender(self, faker_sex: str) -> str:
         """Map Faker's sex field to our gender field."""
         gender_mapping = {
@@ -276,6 +217,61 @@ class PersonGenerator:
             'zip_code': self.fake.zipcode()   # This generates realistic US ZIP codes
         }
     
+    def _get_weighted_employment_status(self, age: int) -> str:
+        """
+        Get employment status with age-appropriate weighting.
+        
+        Args:
+            age: Person's age
+            
+        Returns:
+            Employment status string
+        """
+        if age < 22:
+            # Young people more likely to be students or part-time
+            return random.choices(
+                ["Student", "Part-time", "Full-time"],
+                weights=[50, 35, 15]
+            )[0]
+        elif age < 65:
+            # Working age adults
+            return random.choices(
+                ["Full-time", "Part-time", "Contract", "Freelance", "Self-employed", "Unemployed"],
+                weights=[70, 10, 8, 5, 5, 2]
+            )[0]
+        else:
+            # Retirement age
+            return random.choices(
+                ["Retired", "Part-time", "Self-employed", "Full-time"],
+                weights=[70, 15, 10, 5]
+            )[0]
+    
+    def _get_age_appropriate_education(self, age: int) -> str:
+        """
+        Get education level with age-appropriate distribution.
+        
+        Args:
+            age: Person's age
+            
+        Returns:
+            Education level string
+        """
+        if age < 22:
+            # Younger people less likely to have advanced degrees
+            return random.choices(
+                ["High School", "Some College", "Associate Degree"],
+                weights=[40, 50, 10]
+            )[0]
+        elif age < 30:
+            # Recent graduates
+            return random.choices(
+                ["High School", "Some College", "Associate Degree", "Bachelor's Degree", "Master's Degree"],
+                weights=[20, 25, 15, 35, 5]
+            )[0]
+        else:
+            # Full distribution for older adults
+            return random.choice(self.education_levels)
+    
     def generate_profile(self) -> PersonProfile:
         """Generate a single sanitized person profile for US residents."""
         
@@ -298,19 +294,16 @@ class PersonGenerator:
         # Get sanitized US address components
         address_parts = self._sanitize_us_address(base_profile['address'])
         
-        # Generate employment status and education
-        employment_status = random.choice(self.employment_statuses)
-        education = random.choice(self.education_levels)
+        # Generate age-appropriate employment status and education
+        employment_status = self._get_weighted_employment_status(age)
+        education = self._get_age_appropriate_education(age)
         
-        # Calculate updated income for 2025
-        income = self._generate_updated_income(age, education, employment_status)
+        # Generate career profile using helper
+        career_profile = generate_career_profile(age)
         
         # Generate and clean phone number (ensure US format)
         raw_phone = self.fake.phone_number()
         phone_number = self._clean_phone_number(raw_phone)
-        
-        # Generate realistic US job title
-        job_title = random.choice(US_JOB_TITLES)
         
         # Generate additional fields
         ipv4_address = self.fake.ipv4()
@@ -320,7 +313,7 @@ class PersonGenerator:
         weight_kg = random.randint(50, 120)
         marital_status = random.choice(self.marital_statuses)
         
-        # Create PersonProfile with sanitized data
+        # Create PersonProfile with sanitized data and career information
         profile = PersonProfile(
             person_id=str(uuid.uuid4()),
             first_name=name_data['first_name'],
@@ -329,8 +322,8 @@ class PersonGenerator:
             gender=gender,
             date_of_birth=birth_date,
             age=age,
-            email=email,  # Our realistic email
-            phone_number=phone_number,  # Cleaned US phone number
+            email=email,
+            phone_number=phone_number,
             ssn=base_profile['ssn'],
             
             # Sanitized US address
@@ -341,19 +334,19 @@ class PersonGenerator:
             country="United States",
             country_code="US",
             
-            # Professional with realistic US job title
-            job_title=job_title,  # Our curated US job title
-            company=base_profile['company'],
+            # Professional information from career helper
+            job_title=career_profile.job_title,
+            career_level=career_profile.career_level.value,  # Convert enum to string
             employment_status=employment_status,
-            annual_income=income,  # Updated 2025 income
+            annual_income=career_profile.annual_income,
             
-            # Digital (username from faker, no website)
+            # Digital (username from faker)
             username=base_profile['username'],
             ipv4_address=ipv4_address,
             user_agent=user_agent,
             
             # Personal
-            blood_type=base_profile.get('blood_group', blood_type),
+            blood_type=blood_type,
             height_cm=height_cm,
             weight_kg=weight_kg,
             marital_status=marital_status,
@@ -400,17 +393,17 @@ def generate_multiple_persons(
 
 # Example usage and testing
 if __name__ == "__main__":
-    # Generate a few sample profiles to test sanitization
-    print("Generating sanitized US person profiles...\n")
+    # Generate a few sample profiles to test career progression
+    print("Generating realistic US person profiles with career progression...\n")
     
-    for i in range(5):
+    for i in range(8):
         person = generate_person(seed=i)
         print(f"Profile {i+1}:")
         print(f"Name: {person.full_name} (Age: {person.age})")
         print(f"Email: {person.email}")
         print(f"Phone: {person.phone_number}")
-        print(f"Job: {person.job_title} at {person.company}")
+        print(f"Career: {person.career_level} - {person.job_title}")
         print(f"Income: ${person.annual_income:,} ({person.employment_status})")
         print(f"Location: {person.city}, {person.state} {person.zip_code}")
         print(f"Education: {person.education_level}")
-        print("-" * 70)
+        print("-" * 80)
