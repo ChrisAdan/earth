@@ -120,7 +120,6 @@ def test_data_quality():
         
         # Test age distribution
         ages = [p.age for p in persons]
-        [print(f'{p.full_name} is {p.age}') for p in persons]
         assert min(ages) >= 18, "All persons should be adults"
         assert max(ages) <= 85, "Age should be reasonable"
         

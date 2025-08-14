@@ -8,13 +8,14 @@ Interactive CLI for generating synthetic person data and managing the Earth data
 import sys
 import os
 from pathlib import Path
+from typing import Optional
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pandas as pd
-from earth.loader import connect_to_duckdb, operate_on_table, get_table_info, log
-from earth.generators.person import generate_multiple_persons
+from loader import DatabaseConfig, connect_to_duckdb, operate_on_table, get_table_info, log
+from generators.person import generate_multiple_persons
 
 
 class EarthCLI:
@@ -28,7 +29,7 @@ class EarthCLI:
     def initialize_database(self) -> None:
         """Initialize database connection and ensure schema exists."""
         try:
-            self.conn = connect_to_duckdb()
+            self.conn = connect_to_duckdb(DatabaseConfig.for_dev())
             log("Database connection established successfully")
         except Exception as e:
             log(f"Failed to initialize database: {e}", "error")
