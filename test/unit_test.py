@@ -150,7 +150,7 @@ def display_sample_data():
         print(f"\n👤 Person {i}:")
         print(f"  Name: {person.full_name} ({person.age} years old)")
         print(f"  Location: {person.city}, {person.state}")
-        print(f"  Job: {person.job_title} at {person.company}")
+        print(f"  Job: {person.job_title}")
         print(f"  Income: ${person.annual_income:,}")
         print(f"  Education: {person.education_level}")
 
