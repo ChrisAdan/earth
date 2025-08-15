@@ -10,7 +10,7 @@ from .generators.person import generate_person, PersonProfile
 
 __all__ = [
     "connect_to_duckdb",
-    "operate_on_table", 
+    "operate_on_table",
     "log",
     "generate_person",
     "PersonProfile",
