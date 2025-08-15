@@ -18,7 +18,6 @@ keywords = ["synthetic-data", "testing", "faker", "data-generation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -85,11 +84,13 @@ campaigns = "earth.modules.campaigns"
 automotive = "earth.modules.automotive"
 
 [tool.setuptools]
-py-modules = ["loader", "utils"]
+# Multiple roots: "" for src/, "app" for app/
+package-dir = {"" = "src", "app" = "app"}
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["earth*", "generators*", "modules*"]
+# Search both src and app for packages
+where = ["src", "app"]
+include = ["earth*", "app*"]
 
 [tool.setuptools.package-data]
 earth = ["*.sql", "*.json", "*.yml", "*.yaml"]

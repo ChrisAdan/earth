@@ -39,8 +39,6 @@ earth/
 ├── app/                             # Application layer
 │   ├── __init__.py
 │   ├── main.py                      # ← Primary orchestrator
-│   ├── cli.py                       # Optional: CLI interface
-│   ├── config.py                    # Application configuration
 │   └── workflows/                   # Application-specific workflows
 │       ├── __init__.py            # [TODO]
 │       ├── generate_people.py       # 150k person workflow
@@ -57,8 +55,8 @@ earth/
 │       │   └── database.py          # Database schema management
 │       ├── generators/              # Data generators
 │       │   ├── __init__.py
-│       │   ├── base.py              # Base generator class
 │       │   ├── person.py            # Person generator
+│       │   ├── company.py           # Company generator
 │       │   └── career.py            # Career generator
 │       └── modules/                 # Optional modules
 │           ├── __init__.py

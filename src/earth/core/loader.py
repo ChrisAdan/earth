@@ -26,7 +26,7 @@ class DatabaseConfig:
         db_filename = f"earth_{self.env}.duckdb"
         return self.data_dir / self.env / db_filename
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Ensure the directory exists."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 

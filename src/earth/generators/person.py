@@ -11,7 +11,7 @@ from faker import Faker
 import uuid
 import random
 import numpy as np
-from utils import MIN_AGE, MAX_AGE, EMAIL_DOMAINS
+from earth.core.utils import MIN_AGE, MAX_AGE, EMAIL_DOMAINS
 from earth.generators.career import generate_career_profile, CareerLevel
 
 
