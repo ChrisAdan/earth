@@ -51,16 +51,16 @@ clean:
 # Code formatting and type checking (requires dev dependencies)
 lint:
 	@echo "🔍 Running code formatting and type checking..."
-	@black src/ app/ examples/ --line-length 88
+	@black src/ app/ test/ --line-length 88
 	@mypy src/ --ignore-missing-imports
 	@echo "✅ Linting complete"
 
 # Generate sample data quickly (100 records)
 sample:
 	@echo "📊 Generating sample dataset (100 records)..."
-	@python -c "import sys; sys.path.insert(0, 'src'); from earth.loader import connect_to_duckdb, operate_on_table; from earth.generators.person import generate_multiple_persons; import pandas as pd; conn = connect_to_duckdb(); persons = generate_multiple_persons(100, seed=42); df = pd.DataFrame([p.to_dict() for p in persons]); operate_on_table(conn, 'raw', 'persons', 'write', df, 'truncate'); print('✅ Sample data generated: 100 person records')"
+	@python -c "import sys; sys.path.insert(0, 'src'); from loader import connect_to_duckdb, operate_on_table; from generators.person import generate_multiple_persons; import pandas as pd; conn = connect_to_duckdb(); persons = generate_multiple_persons(100, seed=42); df = pd.DataFrame([p.to_dict() for p in persons]); operate_on_table(conn, 'raw', 'persons', 'write', df, 'truncate'); print('✅ Sample data generated: 100 person records')"
 
 # Show database stats
 stats:
 	@echo "📈 Database Statistics:"
-	@python -c "import sys; sys.path.insert(0, 'src'); from earth.loader import connect_to_duckdb, operate_on_table; conn = connect_to_duckdb(); result = operate_on_table(conn, 'raw', 'persons', 'read', query='SELECT COUNT(*) as total_persons, MIN(age) as min_age, MAX(age) as max_age, AVG(age) as avg_age FROM raw.persons'); print(result.to_string(index=False)) if not result.empty else print('No data found')"
+	@python -c "import sys; sys.path.insert(0, 'src'); from loader import connect_to_duckdb, operate_on_table; conn = connect_to_duckdb(); result = operate_on_table(conn, 'raw', 'persons', 'read', query='SELECT COUNT(*) as total_persons, MIN(age) as min_age, MAX(age) as max_age, AVG(age) as avg_age FROM raw.persons'); print(result.to_string(index=False)) if not result.empty else print('No data found')"
