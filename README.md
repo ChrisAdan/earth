@@ -28,7 +28,8 @@ earth/
 │   ├── loader.py          # DuckDB interface & CRUD operations
 │   └── generators/        # Data generation modules
 │       ├── __init__.py
-│       └── person.py      # Person profile generator
+│       ├── person.py      # Person profile generator
+│       └── career.py      # Career simulator
 ├── logs/                  # Application logs
 │   └── loader/            # Loader-specific logs
 ├── test/
