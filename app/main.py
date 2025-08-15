@@ -1,293 +1,248 @@
 #!/usr/bin/env python3
 """
-Earth Data Generator - Main Application Entry Point
+Earth Data Generator - Application Orchestrator
 
-Interactive CLI for generating synthetic person data and managing the Earth database.
+This is the main application entry point that orchestrates data generation workflows.
+It imports from the earth package (src/earth/) to perform complex data generation tasks.
+
+Usage:
+    python app/main.py                    # Interactive menu
+    python app/main.py --generate-people 150000
+    python app/main.py --generate-companies
+    python app/main.py --generate-all
 """
 
+import argparse
 import sys
-import os
 from pathlib import Path
-from typing import Optional
 
-# Add src to path for imports
+# Add src to path so we can import from earth package during development
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import pandas as pd
-from loader import (
-    DatabaseConfig,
-    connect_to_duckdb,
-    operate_on_table,
-    get_table_info,
-    log,
-)
-from generators.person import generate_multiple_persons
+# Import from earth package
+from earth import generate_multiple_persons, check_module_availability, info as earth_info
+from earth.core.loader import DuckDBLoader
+from earth.core.utils import setup_logging
+
+# Import application-specific workflows
+from workflows.generate_people import PeopleWorkflow
+# from workflows.generate_companies import CompaniesWorkflow  # Will be implemented
+# from workflows.full_dataset import FullDatasetWorkflow    # Will be implemented
 
 
-class EarthCLI:
-    """Command-line interface for Earth data generator."""
-
+class EarthApp:
+    """Main application orchestrator for Earth data generation."""
+    
     def __init__(self):
-        self.conn = None
-        self.schema_name = "raw"
-        self.table_name = "persons"
-
-    def initialize_database(self) -> None:
-        """Initialize database connection and ensure schema exists."""
-        try:
-            self.conn = connect_to_duckdb(DatabaseConfig.for_dev())
-            log("Database connection established successfully")
-        except Exception as e:
-            log(f"Failed to initialize database: {e}", "error")
-            sys.exit(1)
-
-    def get_user_input(self) -> tuple[int, str]:
-        """
-        Get user input for record generation preferences.
-
-        Returns:
-            Tuple of (record_count, action_choice)
-        """
-        print("\n" + "=" * 60)
-        print("🌍 EARTH - Synthetic Data Generator")
+        self.logger = setup_logging("earth_app")
+        self.loader = DuckDBLoader()
+        self.module_availability = check_module_availability()
+        
+    def show_banner(self):
+        """Display application banner."""
         print("=" * 60)
-
-        # Check existing data
-        table_info = get_table_info(self.conn, self.schema_name, self.table_name)
-
-        if table_info["exists"] and table_info["row_count"] > 0:
-            print(f"\n📊 Current database status:")
-            print(f"   • Table: {self.schema_name}.{self.table_name}")
-            print(f"   • Existing records: {table_info['row_count']:,}")
-            print(f"   • Columns: {len(table_info['columns'])}")
-
-            print("\n🔄 Data Management Options:")
-            print("   1. Append new records to existing data")
-            print("   2. Replace all existing data with new records")
-
-            while True:
-                choice = input("\nSelect option (1 or 2): ").strip()
-                if choice in ["1", "2"]:
-                    action_choice = "append" if choice == "1" else "truncate"
-                    break
-                print("❌ Please enter 1 or 2")
+        print("🌍 Earth Data Generator - Application Orchestrator")
+        print("=" * 60)
+        earth_info()
+        print()
+        
+    def show_menu(self):
+        """Display interactive menu."""
+        print("📋 Available Operations:")
+        print("1. Generate People (150k records)")
+        print("2. Generate Companies" + (" ✅" if self.module_availability['companies'] else " ❌ (install earth[companies])"))
+        print("3. Generate Campaigns" + (" ✅" if self.module_availability['campaigns'] else " ❌ (install earth[campaigns])"))
+        print("4. Generate Automotive Data" + (" ✅" if self.module_availability['automotive'] else " ❌ (install earth[automotive])"))
+        print("5. Generate Full Dataset" + (" ✅" if all(self.module_availability.values()) else " ❌ (install earth[all])"))
+        print("6. Database Status")
+        print("7. Clear Database")
+        print("0. Exit")
+        print()
+        
+    def generate_people_workflow(self, count: int = 150_000):
+        """Execute people generation workflow."""
+        self.logger.info(f"Starting people generation workflow: {count:,} records")
+        
+        workflow = PeopleWorkflow(self.loader, self.logger)
+        success = workflow.execute(count)
+        
+        if success:
+            print(f"✅ Successfully generated {count:,} person records")
+            self.show_database_status()
         else:
-            print(f"\n📊 Database status: New table will be created")
-            action_choice = "truncate"  # First time setup
-
-        # Get number of records to generate
-        while True:
+            print("❌ People generation workflow failed")
+            
+    def generate_companies_workflow(self):
+        """Execute companies generation workflow."""
+        if not self.module_availability['companies']:
+            print("❌ Companies module not available. Install with: pip install earth[companies]")
+            return
+            
+        self.logger.info("Starting companies generation workflow")
+        
+        workflow = CompaniesWorkflow(self.loader, self.logger)
+        success = workflow.execute()
+        
+        if success:
+            print("✅ Successfully generated company records")
+            self.show_database_status()
+        else:
+            print("❌ Companies generation workflow failed")
+            
+    def generate_full_dataset(self):
+        """Generate complete dataset with all modules."""
+        if not all(self.module_availability.values()):
+            missing = [k for k, v in self.module_availability.items() if not v]
+            print(f"❌ Missing modules: {', '.join(missing)}")
+            print("Install all modules with: pip install earth[all]")
+            return
+            
+        self.logger.info("Starting full dataset generation")
+        
+        workflow = FullDatasetWorkflow(self.loader, self.logger)
+        success = workflow.execute()
+        
+        if success:
+            print("✅ Successfully generated complete dataset")
+            self.show_database_status()
+        else:
+            print("❌ Full dataset generation failed")
+            
+    def show_database_status(self):
+        """Show current database status."""
+        print("\n📊 Database Status:")
+        
+        try:
+            # Check people table
+            people_count = self.loader.execute_query("SELECT COUNT(*) FROM people").fetchone()[0]
+            print(f"   People: {people_count:,} records")
+        except:
+            print("   People: Not found")
+            
+        # Check optional tables if modules are available
+        if self.module_availability['companies']:
             try:
-                count_input = input(
-                    "\n📈 How many person records to generate? "
-                ).strip()
-                record_count = int(count_input)
-                if record_count <= 0:
-                    print("❌ Please enter a positive number")
-                    continue
-                if record_count > 100000:
-                    confirm = (
-                        input(
-                            f"⚠️  Generating {record_count:,} records may take time. Continue? (y/N): "
-                        )
-                        .strip()
-                        .lower()
-                    )
-                    if confirm not in ["y", "yes"]:
-                        continue
-                break
-            except ValueError:
-                print("❌ Please enter a valid number")
-
-        return record_count, action_choice
-
-    def generate_and_store_data(self, count: int, how: str) -> None:
-        """
-        Generate person data and store in database.
-
-        Args:
-            count: Number of records to generate
-            how: Write method ('append' or 'truncate')
-        """
-        print(f"\n🔄 Generating {count:,} person records...")
-
-        try:
-            # Generate data in batches for better memory management
-            batch_size = min(1000, count)
-            batches = (count + batch_size - 1) // batch_size
-
-            total_generated = 0
-
-            for batch_num in range(batches):
-                current_batch_size = min(batch_size, count - total_generated)
-
-                print(
-                    f"   Batch {batch_num + 1}/{batches}: Generating {current_batch_size} records..."
-                )
-
-                # Generate batch of person profiles
-                persons = generate_multiple_persons(current_batch_size)
-
-                # Convert to DataFrame
-                df = pd.DataFrame([person.to_dict() for person in persons])
-
-                # Determine write method for this batch
-                batch_how = how if batch_num == 0 else "append"
-
-                # Store in database
-                operate_on_table(
-                    conn=self.conn,
-                    schema_name=self.schema_name,
-                    table_name=self.table_name,
-                    action="write",
-                    object_data=df,
-                    how=batch_how,
-                )
-
-                total_generated += current_batch_size
-
-                # Progress update
-                progress = (total_generated / count) * 100
-                print(f"   Progress: {progress:.1f}% ({total_generated:,}/{count:,})")
-
-            # Final status
-            final_info = get_table_info(self.conn, self.schema_name, self.table_name)
-
-            print(f"\n✅ Generation complete!")
-            print(f"   • Total records in database: {final_info['row_count']:,}")
-            print(f"   • Records added this session: {count:,}")
-            print(f"   • Database file: earth.duckdb")
-
-            # Show sample of generated data
-            sample_df = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT person_id, full_name, age, city, job_title FROM {self.schema_name}.{self.table_name} ORDER BY created_at DESC LIMIT 5",
-            )
-
-            print(f"\n📋 Sample of generated data:")
-            print(sample_df.to_string(index=False))
-
-        except Exception as e:
-            log(f"Error during data generation: {e}", "error")
-            print(f"❌ Error during generation: {e}")
-            sys.exit(1)
-
-    def display_database_stats(self) -> None:
-        """Display comprehensive database statistics."""
-        try:
-            # Basic table info
-            table_info = get_table_info(self.conn, self.schema_name, self.table_name)
-
-            if not table_info["exists"]:
-                print("\n📊 Database is empty - no person records found")
-                return
-
-            print(f"\n📊 Database Statistics:")
-            print(f"   • Total persons: {table_info['row_count']:,}")
-
-            # Age distribution
-            age_stats = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT MIN(age) as min_age, MAX(age) as max_age, AVG(age) as avg_age FROM {self.schema_name}.{self.table_name}",
-            )
-
-            if not age_stats.empty:
-                print(
-                    f"   • Age range: {int(age_stats['min_age'].iloc[0])} - {int(age_stats['max_age'].iloc[0])} years"
-                )
-                print(f"   • Average age: {age_stats['avg_age'].iloc[0]:.1f} years")
-
-            # Gender distribution
-            gender_dist = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT gender, COUNT(*) as count FROM {self.schema_name}.{self.table_name} GROUP BY gender ORDER BY count DESC",
-            )
-
-            if not gender_dist.empty:
-                print(f"   • Gender distribution:")
-                for _, row in gender_dist.iterrows():
-                    percentage = (row["count"] / table_info["row_count"]) * 100
-                    print(
-                        f"     - {row['gender']}: {row['count']:,} ({percentage:.1f}%)"
-                    )
-
-            # Top cities
-            top_cities = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT city, state, COUNT(*) as count FROM {self.schema_name}.{self.table_name} GROUP BY city, state ORDER BY count DESC LIMIT 5",
-            )
-
-            if not top_cities.empty:
-                print(f"   • Top cities:")
-                for _, row in top_cities.iterrows():
-                    print(
-                        f"     - {row['city']}, {row['state']}: {row['count']} persons"
-                    )
-
-        except Exception as e:
-            log(f"Error displaying stats: {e}", "error")
-            print(f"❌ Error retrieving statistics: {e}")
-
-    def run(self) -> None:
-        """Main application runner."""
-        print("Initializing Earth Data Generator...")
-
-        # Initialize database
-        self.initialize_database()
-
-        # Get user preferences
-        count, how = self.get_user_input()
-
-        # Confirm generation
-        action_text = (
-            "append to existing data" if how == "append" else "replace existing data"
-        )
-        print(f"\n🚀 Ready to generate {count:,} records and {action_text}")
-        confirm = input("Continue? (Y/n): ").strip().lower()
-
-        if confirm in ["", "y", "yes"]:
-            # Generate and store data
-            self.generate_and_store_data(count, how)
-
-            # Display final statistics
-            self.display_database_stats()
-
-            print(f"\n🎉 Earth data generation complete!")
-            print(f"   Database location: {os.path.abspath('earth.duckdb')}")
-            print(f"   Logs location: {os.path.abspath('logs/loader/')}")
+                companies_count = self.loader.execute_query("SELECT COUNT(*) FROM companies").fetchone()[0]
+                print(f"   Companies: {companies_count:,} records")
+            except:
+                print("   Companies: Not found")
+                
+        if self.module_availability['campaigns']:
+            try:
+                campaigns_count = self.loader.execute_query("SELECT COUNT(*) FROM campaigns").fetchone()[0]
+                print(f"   Campaigns: {campaigns_count:,} records")
+            except:
+                print("   Campaigns: Not found")
+                
+        if self.module_availability['automotive']:
+            try:
+                vehicles_count = self.loader.execute_query("SELECT COUNT(*) FROM vehicles").fetchone()[0]
+                print(f"   Vehicles: {vehicles_count:,} records")
+            except:
+                print("   Vehicles: Not found")
+        print()
+        
+    def clear_database(self):
+        """Clear all database tables."""
+        confirm = input("⚠️  Are you sure you want to clear all data? (yes/no): ")
+        if confirm.lower() == 'yes':
+            self.logger.info("Clearing database")
+            # Implementation depends on your loader's capabilities
+            try:
+                self.loader.execute_query("DROP TABLE IF EXISTS people")
+                self.loader.execute_query("DROP TABLE IF EXISTS companies")
+                self.loader.execute_query("DROP TABLE IF EXISTS campaigns") 
+                self.loader.execute_query("DROP TABLE IF EXISTS vehicles")
+                print("✅ Database cleared")
+            except Exception as e:
+                print(f"❌ Error clearing database: {e}")
         else:
-            print("❌ Generation cancelled by user")
+            print("Database clear cancelled")
+            
+    def interactive_mode(self):
+        """Run in interactive menu mode."""
+        self.show_banner()
+        
+        while True:
+            self.show_menu()
+            try:
+                choice = input("Select option: ").strip()
+                
+                if choice == '0':
+                    print("Goodbye! 👋")
+                    break
+                elif choice == '1':
+                    count = input("Enter number of people to generate (default 150000): ").strip()
+                    count = int(count) if count else 150_000
+                    self.generate_people_workflow(count)
+                elif choice == '2':
+                    self.generate_companies_workflow()
+                elif choice == '3':
+                    print("Campaigns module coming in v0.3.0!")
+                elif choice == '4':
+                    print("Automotive module coming in v0.4.0!")
+                elif choice == '5':
+                    self.generate_full_dataset()
+                elif choice == '6':
+                    self.show_database_status()
+                elif choice == '7':
+                    self.clear_database()
+                else:
+                    print("Invalid option. Please try again.")
+                    
+            except KeyboardInterrupt:
+                print("\n\nExiting... 👋")
+                break
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                
+    def run_command_line(self, args):
+        """Run with command line arguments."""
+        if args.generate_people:
+            self.generate_people_workflow(args.generate_people)
+        elif args.generate_companies:
+            self.generate_companies_workflow()
+        elif args.generate_all:
+            self.generate_full_dataset()
+        elif args.status:
+            self.show_database_status()
+        else:
+            print("No valid command specified. Use --help for options or run without args for interactive mode.")
 
-        # Close connection
-        if self.conn:
-            self.conn.close()
-            log("Database connection closed")
 
-
-def main() -> None:
+def main():
     """Main entry point."""
-    try:
-        cli = EarthCLI()
-        cli.run()
-    except KeyboardInterrupt:
-        print("\n\n❌ Generation interrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        log(f"Unexpected error in main: {e}", "error")
-        print(f"❌ Unexpected error: {e}")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Earth Data Generator Application")
+    
+    # Generation commands
+    parser.add_argument('--generate-people', type=int, metavar='N',
+                       help='Generate N person records (default: 150000)')
+    parser.add_argument('--generate-companies', action='store_true',
+                       help='Generate company records')
+    parser.add_argument('--generate-all', action='store_true', 
+                       help='Generate complete dataset (requires all modules)')
+    
+    # Utility commands
+    parser.add_argument('--status', action='store_true',
+                       help='Show database status')
+    parser.add_argument('--clear', action='store_true',
+                       help='Clear database (interactive confirmation)')
+                       
+    args = parser.parse_args()
+    
+    # Create application instance
+    app = EarthApp()
+    
+    # Run in appropriate mode
+    if len(sys.argv) == 1:
+        # No arguments - interactive mode
+        app.interactive_mode()
+    else:
+        # Command line mode
+        if args.clear:
+            app.clear_database()
+        else:
+            app.run_command_line(args)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ import uuid
 import random
 import numpy as np
 from utils import MIN_AGE, MAX_AGE, EMAIL_DOMAINS
-from generators.career import generate_career_profile, CareerLevel
+from earth.generators.career import generate_career_profile, CareerLevel
 
 
 @dataclass

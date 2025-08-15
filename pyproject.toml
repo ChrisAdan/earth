@@ -1,0 +1,126 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "earth"
+version = "0.1.0"
+description = "Realistic synthetic data generation for testing and development"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Chris Adan"}
+]
+maintainers = [
+    {name = "Chris Adan"}
+]
+keywords = ["synthetic-data", "testing", "faker", "data-generation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering"
+]
+requires-python = ">=3.9"
+
+# Core dependencies
+dependencies = [
+    "pandas>=2.0.0",
+    "duckdb>=0.9.0",
+    "faker>=20.0.0",
+    "typing-extensions>=4.0.0",
+    "numpy>=1.24.0"
+]
+
+# Optional dependencies for modules
+[project.optional-dependencies]
+companies = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0"
+]
+campaigns = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "pillow>=10.0.0"
+]
+automotive = [
+    "requests>=2.31.0"
+]
+# Install all modules
+all = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "pillow>=10.0.0"
+]
+# Development dependencies
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.4.0",
+    "twine>=4.0.0",
+    "build>=0.10.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/ChrisAdan/earth"
+Repository = "https://github.com/ChrisAdan/earth"
+Documentation = "https://github.com/ChrisAdan/earth#readme"
+Changelog = "https://github.com/ChrisAdan/earth/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/ChrisAdan/earth/issues"
+
+[project.entry-points."earth.modules"]
+companies = "earth.modules.companies"
+campaigns = "earth.modules.campaigns"
+automotive = "earth.modules.automotive"
+
+[tool.setuptools]
+py-modules = ["loader", "utils"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["earth*", "generators*", "modules*"]
+
+[tool.setuptools.package-data]
+earth = ["*.sql", "*.json", "*.yml", "*.yaml"]
+"earth.modules" = ["*.sql", "*.json", "*.yml", "*.yaml"]
+
+# Development tool configurations
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "--cov=earth --cov-report=html --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+# Release Please configuration
+[tool.release-please]
+package-name = "earth"
+release-type = "python"
+version-file = "src/earth/__init__.py"
+changelog-file = "CHANGELOG.md"

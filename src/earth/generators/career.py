@@ -3,7 +3,7 @@ Career helper module for generating realistic career progression data.
 Maps age to career level, then determines appropriate job title and salary.
 """
 
-from utils import (
+from earth.core.utils import (
     CareerProfile,
     CareerLevel,
     CAREER_TITLES,
