@@ -73,7 +73,6 @@ def test_workflow_registry():
         print(f"❌ Workflow registry test failed: {e}")
         return False
 
-
 def test_people_workflow():
     """Test people workflow execution."""
     print("\n🧪 Testing people workflow...")
@@ -111,7 +110,6 @@ def test_people_workflow():
         print(f"❌ People workflow test failed: {e}")
         return False
 
-
 def test_companies_workflow():
     """Test companies workflow execution."""
     print("\n🧪 Testing companies workflow...")
@@ -148,7 +146,6 @@ def test_companies_workflow():
     except Exception as e:
         print(f"❌ Companies workflow test failed: {e}")
         return False
-
 
 def test_full_dataset_workflow():
     """Test full dataset workflow orchestration."""
@@ -197,7 +194,6 @@ def test_full_dataset_workflow():
     except Exception as e:
         print(f"❌ Full dataset workflow test failed: {e}")
         return False
-
 
 def test_data_quality_across_workflows():
     """Test data quality across different workflows."""
@@ -259,7 +255,6 @@ def test_data_quality_across_workflows():
         print(f"❌ Data quality test failed: {e}")
         return False
 
-
 def test_legacy_compatibility():
     """Test that legacy person generation still works."""
     print("\n🧪 Testing legacy compatibility...")
@@ -283,7 +278,6 @@ def test_legacy_compatibility():
         print(f"❌ Legacy compatibility test failed: {e}")
         return False
 
-
 def test_person_generation():
     """Test person profile generation."""
     print("\n🧪 Testing person generation...")
@@ -305,7 +299,6 @@ def test_person_generation():
     except Exception as e:
         print(f"❌ Person generation test failed: {e}")
         return False
-
 
 def test_database_operations():
     """Test database CRUD operations."""
@@ -366,7 +359,6 @@ def test_database_operations():
         print(f"❌ Database operations test failed: {e}")
         return False
 
-
 def test_data_quality():
     """Test the quality and realism of generated data."""
     print("\n🧪 Testing data quality...")
@@ -395,7 +387,6 @@ def test_data_quality():
     except Exception as e:
         print(f"❌ Data quality test failed: {e}")
         return False
-
 
 def display_sample_data():
     """Display sample of generated data from workflows."""
@@ -436,19 +427,21 @@ def display_sample_data():
     except Exception as e:
         print(f"❌ Error generating sample data: {e}")
 
-
 def main():
     """Run all tests."""
     print("🌍 Earth Enhanced Unit Tests")
     print("=" * 60)
 
     tests = [
+        test_database_operations,
         test_workflow_registry,
         test_people_workflow,
         test_companies_workflow,
         test_full_dataset_workflow,
+        test_data_quality,
         test_data_quality_across_workflows,
         test_legacy_compatibility,
+        test_person_generation,
     ]
 
     passed = 0
