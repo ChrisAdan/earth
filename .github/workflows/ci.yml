@@ -32,10 +32,10 @@ jobs:
           flake8 src tests --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
 
       - name: Check formatting with black
-        run: black --check src tests
+        run: black --check app src tests
 
       - name: Check import sorting with isort
-        run: isort --check-only src tests
+        run: isort --check-only app src tests
 
       - name: Type check with mypy
         run: mypy src/earth
