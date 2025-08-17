@@ -39,13 +39,13 @@ earth/
 ├── app/                             # Application layer
 │   ├── __init__.py
 │   ├── main.py                      # ← Primary orchestrator
-│   ├── cli.py                       # Optional: CLI interface
-│   ├── config.py                    # Application configuration
 │   └── workflows/                   # Application-specific workflows
-│       ├── __init__.py            # [TODO]
-│       ├── generate_people.py       # 150k person workflow
-│       ├── generate_companies.py    # Future company workflow
-│       └── full_dataset.py          # Generate everything workflow
+│       ├── __init__.py
+│       ├── base.py                  # Base classes and patterns for scalable workflow management
+│       ├── config.py                # Workflow config metadata e.g. available workflows, templates
+│       ├── base.py                  # Abstract base workflow generation class
+│       ├── dataset_orchestrator.py  # Coordinate workflow executions
+│       └── unified_workflow.py      # Unified workflow using base generator
 │
 ├── src/                             # Package source for PyPI
 │   └── earth/                       # The installable package
@@ -58,9 +58,11 @@ earth/
 │       ├── generators/              # Data generators
 │       │   ├── __init__.py
 │       │   ├── base.py              # Base generator class
+│       │   ├── factory.py           # Factory class for creating generators
 │       │   ├── person.py            # Person generator
+│       │   ├── company.py           # Company generator
 │       │   └── career.py            # Career generator
-│       └── modules/                 # Optional modules
+│       └── modules/                 # Optional modules [TBD]
 │           ├── __init__.py
 │           ├── companies/
 │           │   ├── __init__.py

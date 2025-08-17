@@ -1,8 +1,12 @@
-from dataclasses import dataclass
-from enum import IntEnum
+from dataclasses import dataclass, asdict
+from typing import Dict, Any, List
+from datetime import datetime, date, timezone
+from enum import IntEnum, Enum
 
 MIN_AGE = 18
 MAX_AGE = 85
+MIN_RATIO_PEOPLE_TO_COMPANIES = 1.0
+MAX_RATIO_PEOPLE_TO_COMPANIES = 100.0
 
 # Common US job titles by category
 US_JOB_TITLES = [
@@ -99,10 +103,59 @@ class CareerProfile:
     annual_income: int
 
 
+@dataclass
+class PersonProfile:
+    """Data class representing a person profile."""
+
+    person_id: str
+    first_name: str
+    last_name: str
+    full_name: str
+    gender: str
+    date_of_birth: date
+    age: int
+    email: str
+    phone_number: str
+    ssn: str
+
+    # Address information
+    street_address: str
+    city: str
+    state: str
+    zip_code: str
+
+    # Professional information (updated to use career helper)
+    job_title: str
+    career_level: str  # CL-1 through CL-8 equivalent
+    employment_status: str
+    annual_income: int
+
+    # Digital footprint
+    username: str
+    ipv4_address: str
+    user_agent: str
+
+    # Personal details
+    blood_type: str
+    height_cm: int
+    weight_kg: int
+    marital_status: str
+    education_level: str
+    country: str = "United States"
+    country_code: str = "US"
+
+    # Metadata
+    created_at: datetime = datetime.now(timezone.utc)
+    created_by: str = "earth_generator"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
+
+
 # Career level job titles by industry vertical
 CAREER_TITLES = {
-    # Technology
-    "tech": {
+    "technology": {
         CareerLevel.CL_1: [
             "Software Engineer I",
             "Junior Developer",
@@ -149,109 +202,356 @@ CAREER_TITLES = {
             "Chief Data Officer",
         ],
     },
-    # Business & Finance
-    "business": {
+    "financial_services": {
         CareerLevel.CL_1: [
-            "Business Analyst I",
-            "Junior Consultant",
             "Financial Analyst I",
-            "Administrative Assistant",
+            "Banking Associate",
+            "Investment Associate",
+            "Credit Analyst",
         ],
         CareerLevel.CL_2: [
-            "Business Analyst II",
-            "Associate Consultant",
             "Financial Analyst II",
-            "Coordinator",
+            "Investment Advisor",
+            "Senior Banking Associate",
+            "Portfolio Analyst",
         ],
         CareerLevel.CL_3: [
-            "Senior Business Analyst",
-            "Consultant",
             "Senior Financial Analyst",
-            "Project Manager",
+            "Investment Consultant",
+            "Relationship Manager",
+            "Risk Analyst",
         ],
         CareerLevel.CL_4: [
-            "Principal Business Analyst",
-            "Senior Consultant",
             "Finance Manager",
-            "Senior Project Manager",
+            "Senior Investment Advisor",
+            "Portfolio Manager",
+            "Branch Manager",
         ],
         CareerLevel.CL_5: [
-            "Manager",
-            "Lead Consultant",
             "Senior Finance Manager",
-            "Program Manager",
+            "Investment Director",
+            "Regional Manager",
+            "Risk Manager",
         ],
         CareerLevel.CL_6: [
-            "Senior Manager",
-            "Director of Operations",
             "Finance Director",
-            "Senior Program Manager",
+            "VP of Investments",
+            "Managing Director",
+            "Chief Risk Officer",
         ],
         CareerLevel.CL_7: [
-            "VP of Operations",
-            "Senior Director",
             "VP of Finance",
-            "Executive Director",
+            "Senior Managing Director",
+            "Regional President",
+            "Chief Investment Officer",
         ],
         CareerLevel.CL_8: [
-            "Chief Operating Officer",
             "Chief Financial Officer",
             "President",
-            "Managing Director",
+            "Chief Executive Officer",
+            "Chairman",
         ],
     },
-    # Sales & Marketing
-    "sales_marketing": {
+    "pharmaceuticals": {
         CareerLevel.CL_1: [
-            "Sales Associate",
-            "Marketing Coordinator",
-            "Inside Sales Rep",
-            "Marketing Assistant",
+            "Research Associate",
+            "Lab Technician",
+            "Quality Control Analyst",
+            "Clinical Research Coordinator",
         ],
         CareerLevel.CL_2: [
-            "Account Executive",
-            "Marketing Specialist",
-            "Sales Representative",
-            "Digital Marketing Specialist",
+            "Research Scientist",
+            "Clinical Research Associate",
+            "Regulatory Affairs Specialist",
+            "Biostatistician",
         ],
         CareerLevel.CL_3: [
-            "Senior Account Executive",
-            "Marketing Manager",
-            "Territory Manager",
-            "Product Marketing Manager",
+            "Senior Research Scientist",
+            "Principal Scientist",
+            "Clinical Trial Manager",
+            "Regulatory Affairs Manager",
         ],
         CareerLevel.CL_4: [
-            "Sales Manager",
-            "Senior Marketing Manager",
-            "Regional Sales Manager",
+            "Lead Scientist",
+            "Senior Clinical Manager",
+            "Medical Affairs Manager",
+            "Product Manager",
+        ],
+        CareerLevel.CL_5: [
+            "Research Director",
+            "Clinical Development Director",
+            "Medical Director",
+            "Senior Product Manager",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Research",
+            "VP of Clinical Development",
+            "Chief Medical Officer",
+            "VP of Regulatory Affairs",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of R&D",
+            "Chief Scientific Officer",
+            "Executive Medical Director",
+            "Global Head of Development",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chief Operating Officer",
+            "Chairman & CEO",
+        ],
+    },
+    "aerospace": {
+        CareerLevel.CL_1: [
+            "Aerospace Engineer I",
+            "Design Engineer",
+            "Test Technician",
+            "Quality Inspector",
+        ],
+        CareerLevel.CL_2: [
+            "Aerospace Engineer II",
+            "Systems Engineer",
+            "Test Engineer",
+            "Project Engineer",
+        ],
+        CareerLevel.CL_3: [
+            "Senior Aerospace Engineer",
+            "Lead Engineer",
+            "Systems Architect",
+            "Program Engineer",
+        ],
+        CareerLevel.CL_4: [
+            "Principal Engineer",
+            "Engineering Manager",
+            "Technical Lead",
+            "Chief Engineer",
+        ],
+        CareerLevel.CL_5: [
+            "Senior Engineering Manager",
+            "Program Manager",
+            "Director of Engineering",
+            "Technical Director",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Engineering",
+            "Senior Program Director",
+            "Chief Engineer",
+            "Director of Operations",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Engineering",
+            "Chief Technology Officer",
+            "Executive Director",
+            "Division President",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chief Operating Officer",
+            "Chairman",
+        ],
+    },
+    "energy": {
+        CareerLevel.CL_1: [
+            "Field Technician",
+            "Junior Engineer",
+            "Operations Technician",
+            "Safety Coordinator",
+        ],
+        CareerLevel.CL_2: [
+            "Energy Analyst",
+            "Project Engineer",
+            "Operations Specialist",
+            "Environmental Specialist",
+        ],
+        CareerLevel.CL_3: [
+            "Senior Energy Analyst",
+            "Project Manager",
+            "Operations Manager",
+            "Environmental Manager",
+        ],
+        CareerLevel.CL_4: [
+            "Principal Engineer",
+            "Senior Project Manager",
+            "Plant Manager",
+            "Regional Manager",
+        ],
+        CareerLevel.CL_5: [
+            "Engineering Manager",
+            "Operations Director",
+            "Business Development Manager",
+            "Division Manager",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Operations",
+            "Regional Director",
+            "Asset Manager",
+            "VP of Development",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Operations",
+            "Chief Operating Officer",
+            "Executive VP",
+            "Division President",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Chief Operating Officer",
+        ],
+    },
+    "telecommunications": {
+        CareerLevel.CL_1: [
+            "Network Technician",
+            "Customer Service Rep",
+            "Field Service Technician",
+            "NOC Analyst",
+        ],
+        CareerLevel.CL_2: [
+            "Network Engineer",
+            "Systems Administrator",
+            "Technical Support Specialist",
+            "Network Analyst",
+        ],
+        CareerLevel.CL_3: [
+            "Senior Network Engineer",
+            "Solutions Architect",
+            "Project Manager",
+            "Product Manager",
+        ],
+        CareerLevel.CL_4: [
+            "Principal Network Engineer",
+            "Engineering Manager",
+            "Senior Product Manager",
+            "Operations Manager",
+        ],
+        CareerLevel.CL_5: [
+            "Network Architecture Manager",
+            "Director of Engineering",
+            "VP of Product",
+            "Regional Manager",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Engineering",
+            "Chief Technology Officer",
+            "VP of Operations",
+            "Director of Strategy",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Technology",
+            "Chief Operating Officer",
+            "Executive VP",
+            "President of Operations",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Chief Technology Officer",
+        ],
+    },
+    "media": {
+        CareerLevel.CL_1: [
+            "Content Creator",
+            "Production Assistant",
+            "Junior Writer",
+            "Media Coordinator",
+        ],
+        CareerLevel.CL_2: [
+            "Content Producer",
+            "Editor",
+            "Writer",
+            "Digital Media Specialist",
+        ],
+        CareerLevel.CL_3: [
+            "Senior Producer",
+            "Creative Director",
+            "Senior Editor",
+            "Content Manager",
+        ],
+        CareerLevel.CL_4: [
+            "Executive Producer",
+            "Creative Manager",
+            "Editorial Director",
             "Brand Manager",
         ],
         CareerLevel.CL_5: [
-            "Senior Sales Manager",
-            "Marketing Director",
-            "Area Sales Director",
-            "Channel Manager",
+            "Head of Content",
+            "Creative Director",
+            "VP of Programming",
+            "Managing Editor",
         ],
         CareerLevel.CL_6: [
-            "Sales Director",
-            "Senior Marketing Director",
-            "VP of Sales",
-            "Director of Marketing",
+            "VP of Content",
+            "Chief Creative Officer",
+            "Editorial Director",
+            "VP of Production",
         ],
         CareerLevel.CL_7: [
-            "VP of Sales",
-            "VP of Marketing",
-            "Chief Revenue Officer",
-            "Senior VP Sales",
-        ],
-        CareerLevel.CL_8: [
-            "Chief Marketing Officer",
-            "President of Sales",
-            "Chief Revenue Officer",
+            "Senior VP of Content",
+            "Chief Content Officer",
+            "President of Programming",
             "Executive VP",
         ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Chief Operating Officer",
+        ],
     },
-    # Healthcare
+    "real_estate": {
+        CareerLevel.CL_1: [
+            "Real Estate Agent",
+            "Property Assistant",
+            "Leasing Consultant",
+            "Real Estate Analyst",
+        ],
+        CareerLevel.CL_2: [
+            "Senior Real Estate Agent",
+            "Property Manager",
+            "Investment Analyst",
+            "Development Coordinator",
+        ],
+        CareerLevel.CL_3: [
+            "Real Estate Broker",
+            "Senior Property Manager",
+            "Asset Manager",
+            "Development Manager",
+        ],
+        CareerLevel.CL_4: [
+            "Senior Broker",
+            "Portfolio Manager",
+            "Regional Manager",
+            "Project Manager",
+        ],
+        CareerLevel.CL_5: [
+            "Brokerage Manager",
+            "VP of Property Management",
+            "Development Director",
+            "Regional Director",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Real Estate",
+            "Managing Director",
+            "Chief Investment Officer",
+            "President of Development",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Real Estate",
+            "Chief Operating Officer",
+            "Executive VP",
+            "Division President",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Founder & CEO",
+        ],
+    },
     "healthcare": {
         CareerLevel.CL_1: [
             "Medical Assistant",
@@ -301,53 +601,106 @@ CAREER_TITLES = {
             "System CEO",
         ],
     },
-    # Education
-    "education": {
+    "professional_services": {
         CareerLevel.CL_1: [
-            "Teaching Assistant",
-            "Substitute Teacher",
-            "Tutor",
-            "Education Aide",
+            "Junior Consultant",
+            "Associate",
+            "Analyst",
+            "Staff Accountant",
         ],
-        CareerLevel.CL_2: ["Teacher", "Instructor", "Counselor", "Librarian"],
+        CareerLevel.CL_2: [
+            "Consultant",
+            "Senior Associate",
+            "Senior Analyst",
+            "Accountant",
+        ],
         CareerLevel.CL_3: [
-            "Senior Teacher",
-            "Department Chair",
-            "Curriculum Specialist",
-            "Academic Advisor",
+            "Senior Consultant",
+            "Manager",
+            "Principal Analyst",
+            "Senior Manager",
         ],
         CareerLevel.CL_4: [
-            "Lead Teacher",
-            "Assistant Principal",
-            "Instructional Coordinator",
-            "Program Director",
+            "Principal Consultant",
+            "Senior Manager",
+            "Director",
+            "Partner Track",
         ],
         CareerLevel.CL_5: [
+            "Director",
             "Principal",
-            "Department Head",
-            "Academic Director",
-            "District Coordinator",
+            "Managing Director",
+            "Senior Director",
         ],
         CareerLevel.CL_6: [
-            "Senior Principal",
-            "Assistant Superintendent",
-            "Director of Education",
-            "Dean",
+            "Senior Director",
+            "Partner",
+            "VP of Consulting",
+            "Managing Partner",
         ],
         CareerLevel.CL_7: [
-            "Superintendent",
-            "VP of Academic Affairs",
-            "Provost",
-            "Associate Dean",
+            "Senior Partner",
+            "Executive Director",
+            "Regional Managing Partner",
+            "Practice Leader",
         ],
         CareerLevel.CL_8: [
-            "President",
-            "Chancellor",
-            "Chief Academic Officer",
-            "Executive Director",
+            "Managing Partner",
+            "CEO",
+            "Chairman",
+            "Global Managing Partner",
         ],
     },
-    # General/Services
+    "automotive": {
+        CareerLevel.CL_1: [
+            "Automotive Technician",
+            "Assembly Worker",
+            "Quality Inspector",
+            "Junior Engineer",
+        ],
+        CareerLevel.CL_2: [
+            "Senior Technician",
+            "Process Engineer",
+            "Quality Engineer",
+            "Design Engineer",
+        ],
+        CareerLevel.CL_3: [
+            "Lead Technician",
+            "Senior Engineer",
+            "Manufacturing Engineer",
+            "Product Engineer",
+        ],
+        CareerLevel.CL_4: [
+            "Engineering Manager",
+            "Plant Supervisor",
+            "Senior Product Engineer",
+            "Quality Manager",
+        ],
+        CareerLevel.CL_5: [
+            "Plant Manager",
+            "Engineering Director",
+            "Operations Manager",
+            "Regional Manager",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Manufacturing",
+            "VP of Engineering",
+            "Operations Director",
+            "General Manager",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Operations",
+            "Chief Operating Officer",
+            "Division President",
+            "Executive VP",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Chief Operating Officer",
+        ],
+    },
     "general": {
         CareerLevel.CL_1: [
             "Customer Service Rep",
@@ -398,6 +751,451 @@ CAREER_TITLES = {
             "Managing Director",
         ],
     },
+    "government": {
+        CareerLevel.CL_1: [
+            "Administrative Assistant",
+            "Program Assistant",
+            "Clerk",
+            "Customer Service Rep",
+        ],
+        CareerLevel.CL_2: [
+            "Program Analyst",
+            "Administrative Specialist",
+            "Policy Analyst",
+            "Public Affairs Specialist",
+        ],
+        CareerLevel.CL_3: [
+            "Senior Program Analyst",
+            "Program Manager",
+            "Senior Policy Analyst",
+            "Public Information Officer",
+        ],
+        CareerLevel.CL_4: [
+            "Program Director",
+            "Deputy Director",
+            "Division Chief",
+            "Senior Manager",
+        ],
+        CareerLevel.CL_5: [
+            "Department Director",
+            "Assistant Administrator",
+            "Regional Director",
+            "Bureau Chief",
+        ],
+        CareerLevel.CL_6: [
+            "Deputy Administrator",
+            "Assistant Secretary",
+            "Executive Director",
+            "Commissioner",
+        ],
+        CareerLevel.CL_7: [
+            "Administrator",
+            "Deputy Secretary",
+            "Agency Director",
+            "Deputy Commissioner",
+        ],
+        CareerLevel.CL_8: [
+            "Secretary",
+            "Director",
+            "Administrator",
+            "Commissioner",
+        ],
+    },
+    "manufacturing": {
+        CareerLevel.CL_1: [
+            "Production Worker",
+            "Assembly Technician",
+            "Quality Inspector",
+            "Machine Operator",
+        ],
+        CareerLevel.CL_2: [
+            "Senior Production Worker",
+            "Process Technician",
+            "Quality Analyst",
+            "Maintenance Technician",
+        ],
+        CareerLevel.CL_3: [
+            "Team Lead",
+            "Process Engineer",
+            "Quality Engineer",
+            "Shift Supervisor",
+        ],
+        CareerLevel.CL_4: [
+            "Production Supervisor",
+            "Manufacturing Engineer",
+            "Quality Manager",
+            "Plant Supervisor",
+        ],
+        CareerLevel.CL_5: [
+            "Production Manager",
+            "Operations Manager",
+            "Plant Manager",
+            "Engineering Manager",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Operations",
+            "VP of Manufacturing",
+            "General Manager",
+            "Operations Director",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Operations",
+            "Chief Operations Officer",
+            "Division President",
+            "Executive VP",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Chief Operating Officer",
+        ],
+    },
+    "construction": {
+        CareerLevel.CL_1: [
+            "Construction Worker",
+            "Apprentice",
+            "Helper",
+            "Laborer",
+        ],
+        CareerLevel.CL_2: [
+            "Skilled Tradesperson",
+            "Equipment Operator",
+            "Carpenter",
+            "Electrician",
+        ],
+        CareerLevel.CL_3: [
+            "Crew Leader",
+            "Site Supervisor",
+            "Project Coordinator",
+            "Estimator",
+        ],
+        CareerLevel.CL_4: [
+            "Project Manager",
+            "Construction Manager",
+            "Site Manager",
+            "Senior Estimator",
+        ],
+        CareerLevel.CL_5: [
+            "Senior Project Manager",
+            "Operations Manager",
+            "Regional Manager",
+            "Business Development Manager",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Operations",
+            "Regional Director",
+            "General Manager",
+            "VP of Construction",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Operations",
+            "Executive VP",
+            "Division President",
+            "Chief Operating Officer",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Owner",
+        ],
+    },
+    "transportation": {
+        CareerLevel.CL_1: [
+            "Driver",
+            "Warehouse Worker",
+            "Dispatcher",
+            "Logistics Coordinator",
+        ],
+        CareerLevel.CL_2: [
+            "Senior Driver",
+            "Logistics Specialist",
+            "Fleet Coordinator",
+            "Operations Specialist",
+        ],
+        CareerLevel.CL_3: [
+            "Fleet Manager",
+            "Operations Supervisor",
+            "Logistics Manager",
+            "Terminal Manager",
+        ],
+        CareerLevel.CL_4: [
+            "Operations Manager",
+            "Regional Manager",
+            "Transportation Manager",
+            "District Manager",
+        ],
+        CareerLevel.CL_5: [
+            "VP of Operations",
+            "Regional Director",
+            "General Manager",
+            "Director of Logistics",
+        ],
+        CareerLevel.CL_6: [
+            "Senior VP of Operations",
+            "Chief Operations Officer",
+            "VP of Transportation",
+            "Executive Director",
+        ],
+        CareerLevel.CL_7: [
+            "Executive VP",
+            "Division President",
+            "Chief Operating Officer",
+            "Senior VP",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Chief Operating Officer",
+        ],
+    },
+    "education": {
+        CareerLevel.CL_1: [
+            "Teaching Assistant",
+            "Substitute Teacher",
+            "Tutor",
+            "Education Aide",
+        ],
+        CareerLevel.CL_2: ["Teacher", "Instructor", "Counselor", "Librarian"],
+        CareerLevel.CL_3: [
+            "Senior Teacher",
+            "Department Chair",
+            "Curriculum Specialist",
+            "Academic Advisor",
+        ],
+        CareerLevel.CL_4: [
+            "Lead Teacher",
+            "Assistant Principal",
+            "Instructional Coordinator",
+            "Program Director",
+        ],
+        CareerLevel.CL_5: [
+            "Principal",
+            "Department Head",
+            "Academic Director",
+            "District Coordinator",
+        ],
+        CareerLevel.CL_6: [
+            "Senior Principal",
+            "Assistant Superintendent",
+            "Director of Education",
+            "Dean",
+        ],
+        CareerLevel.CL_7: [
+            "Superintendent",
+            "VP of Academic Affairs",
+            "Provost",
+            "Associate Dean",
+        ],
+        CareerLevel.CL_8: [
+            "President",
+            "Chancellor",
+            "Chief Academic Officer",
+            "Executive Director",
+        ],
+    },
+    "retail": {
+        CareerLevel.CL_1: [
+            "Sales Associate",
+            "Cashier",
+            "Stock Associate",
+            "Customer Service Rep",
+        ],
+        CareerLevel.CL_2: [
+            "Senior Sales Associate",
+            "Department Associate",
+            "Shift Lead",
+            "Sales Specialist",
+        ],
+        CareerLevel.CL_3: [
+            "Team Lead",
+            "Department Supervisor",
+            "Assistant Manager",
+            "Merchandiser",
+        ],
+        CareerLevel.CL_4: [
+            "Store Manager",
+            "Department Manager",
+            "Regional Supervisor",
+            "Buyer",
+        ],
+        CareerLevel.CL_5: [
+            "District Manager",
+            "Regional Manager",
+            "Merchandising Manager",
+            "Operations Manager",
+        ],
+        CareerLevel.CL_6: [
+            "Regional Director",
+            "VP of Operations",
+            "VP of Merchandising",
+            "General Manager",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Retail",
+            "Chief Merchandising Officer",
+            "Executive VP",
+            "Division President",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Chief Operating Officer",
+        ],
+    },
+    "hospitality": {
+        CareerLevel.CL_1: [
+            "Front Desk Associate",
+            "Server",
+            "Housekeeper",
+            "Host/Hostess",
+        ],
+        CareerLevel.CL_2: [
+            "Guest Services Coordinator",
+            "Bartender",
+            "Concierge",
+            "Kitchen Staff",
+        ],
+        CareerLevel.CL_3: [
+            "Shift Manager",
+            "Assistant Manager",
+            "Supervisor",
+            "Event Coordinator",
+        ],
+        CareerLevel.CL_4: [
+            "Hotel Manager",
+            "Restaurant Manager",
+            "Department Manager",
+            "Food & Beverage Manager",
+        ],
+        CareerLevel.CL_5: [
+            "General Manager",
+            "Operations Manager",
+            "Regional Manager",
+            "Director of Operations",
+        ],
+        CareerLevel.CL_6: [
+            "VP of Operations",
+            "Regional Director",
+            "Area Manager",
+            "VP of Hospitality",
+        ],
+        CareerLevel.CL_7: [
+            "Senior VP of Operations",
+            "Division President",
+            "Executive VP",
+            "Chief Operating Officer",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Owner",
+        ],
+    },
+    "agriculture": {
+        CareerLevel.CL_1: [
+            "Farm Worker",
+            "Ranch Hand",
+            "Agricultural Technician",
+            "Equipment Operator",
+        ],
+        CareerLevel.CL_2: [
+            "Farm Supervisor",
+            "Agricultural Specialist",
+            "Crop Manager",
+            "Livestock Manager",
+        ],
+        CareerLevel.CL_3: [
+            "Farm Manager",
+            "Agricultural Consultant",
+            "Operations Supervisor",
+            "Regional Coordinator",
+        ],
+        CareerLevel.CL_4: [
+            "Regional Manager",
+            "Operations Manager",
+            "Agricultural Director",
+            "Farm Owner",
+        ],
+        CareerLevel.CL_5: [
+            "VP of Operations",
+            "Agricultural Operations Director",
+            "Regional Director",
+            "General Manager",
+        ],
+        CareerLevel.CL_6: [
+            "Senior VP of Agriculture",
+            "Chief Agricultural Officer",
+            "Executive Director",
+            "Division President",
+        ],
+        CareerLevel.CL_7: [
+            "Executive VP",
+            "President of Agriculture",
+            "Chief Operating Officer",
+            "Senior VP",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "President",
+            "Chairman & CEO",
+            "Owner & CEO",
+        ],
+    },
+    "non_profit": {
+        CareerLevel.CL_1: [
+            "Program Assistant",
+            "Volunteer Coordinator",
+            "Administrative Assistant",
+            "Outreach Coordinator",
+        ],
+        CareerLevel.CL_2: [
+            "Program Coordinator",
+            "Development Associate",
+            "Case Manager",
+            "Community Outreach Specialist",
+        ],
+        CareerLevel.CL_3: [
+            "Program Manager",
+            "Development Manager",
+            "Senior Case Manager",
+            "Community Relations Manager",
+        ],
+        CareerLevel.CL_4: [
+            "Program Director",
+            "Development Director",
+            "Operations Manager",
+            "Senior Program Manager",
+        ],
+        CareerLevel.CL_5: [
+            "VP of Programs",
+            "VP of Development",
+            "Operations Director",
+            "Regional Director",
+        ],
+        CareerLevel.CL_6: [
+            "Senior VP of Programs",
+            "Chief Development Officer",
+            "Chief Operating Officer",
+            "Executive Director",
+        ],
+        CareerLevel.CL_7: [
+            "Executive VP",
+            "Deputy Executive Director",
+            "Chief Program Officer",
+            "President",
+        ],
+        CareerLevel.CL_8: [
+            "Chief Executive Officer",
+            "Executive Director",
+            "President & CEO",
+            "Founder & CEO",
+        ],
+    },
 }
 
 # Base salary ranges by career level (2025 US market)
@@ -412,12 +1210,153 @@ SALARY_RANGES = {
     CareerLevel.CL_8: (250000, 500000),  # C-Suite
 }
 
-# Industry salary multipliers
-INDUSTRY_MULTIPLIERS = {
-    "tech": 1.3,  # Tech pays premium
-    "business": 1.1,  # Finance/consulting premium
-    "sales_marketing": 1.0,  # Average market
-    "healthcare": 1.1,  # Healthcare premium
-    "education": 0.8,  # Education typically lower
-    "general": 0.9,  # General/services below average
+
+class IndustryMetadata(Enum):
+    """Industries and associated profitability multipliers"""
+
+    # High profitability industries
+    technology = 1.4
+    financial_services = 1.3
+    pharmaceuticals = 1.3
+    aerospace = 1.3
+
+    # Medium-high profitability
+    energy = 1.2
+    telecommunications = 1.1
+    media = 1.1
+    real_estate = 1.0
+    healthcare = 1.0
+
+    # Medium profitability
+    professional_services = 0.9
+    automotive = 0.9
+    general = 0.9
+    government = 0.9
+
+    # Medium-low profitability
+    manufacturing = 0.8
+    construction = 0.8
+    transportation = 0.8
+    education = 0.8
+
+    # Lower profitability
+    retail = 0.7
+    hospitality = 0.6
+    agriculture = 0.5
+
+    # Lowest profitability
+    non_profit = 0.3
+
+    @classmethod
+    def _get_title_case_industry_names(cls) -> List[str]:
+        return [member.name.replace("_", " ").title() for member in cls]
+
+    # Helper function to get career titles for any industry
+    @classmethod
+    def _get_career_titles_for_industry(
+        cls, industry_name: str, career_level: CareerLevel
+    ) -> List[str]:
+        """
+        Get career titles for a specific industry and level.
+
+        Args:
+            industry_name: Industry name (can be title case or enum format)
+            career_level: CareerLevel enum value
+
+        Returns:
+            List of job titles for that industry/level combination
+        """
+        # Convert title case to enum format if needed
+        industry_key = industry_name.lower().replace(" ", "_")
+
+        # Try exact match first
+        if industry_key in CAREER_TITLES:
+            return CAREER_TITLES[industry_key][career_level]
+
+        # Fallback to general if industry not found
+        print(f"Warning: Industry '{industry_name}' not found, using general titles")
+        return CAREER_TITLES["general"][career_level]
+
+
+EMPLOYMENT_STATUSES = [
+    "Full-time",
+    "Part-time",
+    "Contract",
+    "Freelance",
+    "Unemployed",
+    "Student",
+    "Retired",
+    "Self-employed",
+]
+
+EDUCATION_LEVELS = [
+    "High School",
+    "Some College",
+    "Associate Degree",
+    "Bachelor's Degree",
+    "Master's Degree",
+    "Doctoral Degree",
+]
+
+MARITAL_STATUSES = [
+    "Single",
+    "Married",
+    "Divorced",
+    "Widowed",
+    "Separated",
+]
+
+COMPANY_SIZE_CATEGORIES = {
+    "Startup": (1, 10),
+    "Small": (11, 50),
+    "Medium": (51, 250),
+    "Large": (251, 1000),
+    "Enterprise": (1001, 10000),
+    "Mega Corp": (10001, 500000),
 }
+
+BUSINESS_TYPES = [
+    "Corporation",
+    "LLC",
+    "Partnership",
+    "Sole Proprietorship",
+    "S Corporation",
+    "B Corporation",
+    "Non-Profit",
+    "Cooperative",
+]
+LEGAL_SUFFIXES = ["Inc.", "LLC", "Corp.", "Ltd.", "Co.", "LP"]
+
+REVENUE_RANGES = {
+    "Startup": ("$0-1M", (0, 1000000)),
+    "Small": ("$1M-10M", (1000000, 10000000)),
+    "Medium": ("$10M-100M", (10000000, 100000000)),
+    "Large": ("$100M-1B", (100000000, 1000000000)),
+    "Enterprise": ("$1B-10B", (1000000000, 10000000000)),
+    "Mega Corp": ("$10B+", (10000000000, 500000000000)),
+}
+
+CREDIT_RATINGS = [
+    "AAA",
+    "AA+",
+    "AA",
+    "AA-",
+    "A+",
+    "A",
+    "A-",
+    "BBB+",
+    "BBB",
+    "BBB-",
+    "BB+",
+    "BB",
+    "BB-",
+    "B+",
+    "B",
+    "B-",
+    "CCC",
+    "CC",
+    "C",
+    "D",
+]
+
+GROWTH_STAGES = ["Startup", "Growth", "Mature", "Decline"]

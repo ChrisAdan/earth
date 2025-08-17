@@ -12,132 +12,6 @@ import duckdb
 import pandas as pd
 
 
-@dataclass
-class DatabaseConfig:
-    """Configuration for DuckDB connection."""
-
-    data_dir: Path = Path("data")
-    env: str = "dev"
-    schema_name: str = "raw"
-
-    @property
-    def db_path(self) -> Path:
-        """Generate database path based on environment."""
-        db_filename = f"earth_{self.env}.duckdb"
-        return self.data_dir / self.env / db_filename
-
-    def __post_init__(self):
-        """Ensure the directory exists."""
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    @classmethod
-    def for_dev(cls, schema_name: str = "raw") -> "DatabaseConfig":
-        """Create a development configuration."""
-        return cls(env="dev", schema_name=schema_name)
-
-    @classmethod
-    def for_prod(cls, schema_name: str = "raw") -> "DatabaseConfig":
-        """Create a production configuration."""
-        return cls(env="prod", schema_name=schema_name)
-
-    @classmethod
-    def for_testing(cls, schema_name: str = "test") -> "DatabaseConfig":
-        """Create a test configuration (uses dev environment with test schema)."""
-        return cls(env="dev", schema_name=schema_name)
-
-    def __str__(self) -> str:
-        """String representation showing key config details."""
-        return f"DatabaseConfig(env={self.env}, db_path={self.db_path}, schema={self.schema_name})"
-
-
-def setup_logging() -> logging.Logger:
-    """Set up logging configuration."""
-    # Create logs directory structure
-    log_dir = Path("logs/loader")
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create logger
-    logger = logging.getLogger("earth.loader")
-    logger.setLevel(logging.INFO)
-
-    # Prevent duplicate handlers
-    if logger.handlers:
-        return logger
-
-    # Create file handler
-    log_file = log_dir / f"loader_{datetime.now().strftime('%Y%m%d')}.log"
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.INFO)
-
-    # Create console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-
-    # Create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
-
-    # Add handlers to logger
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-
-    return logger
-
-
-def log(message: str, level: str = "info") -> None:
-    """
-    Utility function for logging messages.
-
-    Args:
-        message: Message to log
-        level: Log level ('info', 'warning', 'error', 'debug')
-    """
-    logger = setup_logging()
-
-    level_map = {
-        "info": logger.info,
-        "warning": logger.warning,
-        "error": logger.error,
-        "debug": logger.debug,
-    }
-
-    log_func = level_map.get(level.lower(), logger.info)
-    log_func(message)
-
-
-def connect_to_duckdb(
-    config: Optional[DatabaseConfig] = None,
-) -> duckdb.DuckDBPyConnection:
-    """
-    Create and return DuckDB connection.
-
-    Args:
-        config: Database configuration object
-
-    Returns:
-        DuckDB connection object
-    """
-    if config is None:
-        config = DatabaseConfig.for_dev()
-
-    try:
-        log(f"Connecting to DuckDB: {config}")
-        conn = duckdb.connect(str(config.db_path))  # Convert Path to string
-
-        # Create schema if it doesn't exist
-        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {config.schema_name}")
-        log(f"Ensured schema '{config.schema_name}' exists")
-
-        return conn
-
-    except Exception as e:
-        log(f"Failed to connect to DuckDB: {str(e)}", "error")
-        raise
-
-
 def operate_on_table(
     conn: duckdb.DuckDBPyConnection,
     schema_name: str,
@@ -204,9 +78,12 @@ def operate_on_table(
             elif isinstance(object_data, list):
                 df = pd.DataFrame(object_data)
             elif isinstance(object_data, pd.DataFrame):
-                df = object_data
+                df = object_data.copy()  # Make a copy to avoid modifying original
             else:
                 raise ValueError(f"Unsupported object_data type: {type(object_data)}")
+
+            # **FIX: Prepare DataFrame with explicit types for DuckDB**
+            df = _prepare_dataframe_for_duckdb(df)
 
             if how == "truncate":
                 log(f"Truncating and writing {len(df)} rows to {full_table_name}")
@@ -214,21 +91,19 @@ def operate_on_table(
             else:
                 log(f"Appending {len(df)} rows to {full_table_name}")
 
-            # Register DataFrame as temporary table and insert
-            conn.register("temp_df", df)
-
+            # **FIX: Use explicit table creation with proper column types**
             if how == "truncate" or not operate_on_table(
                 conn, schema_name, table_name, "ping"
             ):
-                # Create table from DataFrame
-                conn.execute(f"CREATE TABLE {full_table_name} AS SELECT * FROM temp_df")
-            else:
-                # Insert into existing table
-                conn.execute(f"INSERT INTO {full_table_name} SELECT * FROM temp_df")
+                # Create table with explicit schema to prevent type inference issues
+                _create_table_with_explicit_schema(conn, full_table_name, df)
 
-            conn.unregister("temp_df")
+            # **FIX: Use pandas to_sql with explicit dtype mapping**
+            _write_dataframe_to_duckdb(conn, df, schema_name, table_name, how)
+
             log(f"Successfully wrote data to {full_table_name}")
             return None
+
         elif action == "clear":
             # Truncate table
             if operate_on_table(conn, schema_name, table_name, "ping"):
@@ -242,6 +117,284 @@ def operate_on_table(
 
     except Exception as e:
         log(f"Error in operate_on_table: {str(e)}", "error")
+        raise
+
+
+def _prepare_dataframe_for_duckdb(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepare DataFrame for DuckDB by ensuring proper column types.
+
+    This prevents DuckDB from incorrectly inferring types, especially
+    for string columns that contain numeric-looking values.
+    """
+    df_prepared = df.copy()
+
+    # Force specific columns to remain as strings
+    string_columns = [
+        "person_id",
+        "company_id",
+        "customer_id",
+        "product_id",  # ID fields
+        "stock_symbol",
+        "ticker_symbol",  # Stock symbols
+        "phone",
+        "mobile_phone",
+        "work_phone",
+        "fax",  # Phone numbers
+        "zip_code",
+        "postal_code",
+        "zipcode",  # Postal codes
+        "ssn",
+        "tax_id",
+        "ein",  # Government IDs
+        "account_number",
+        "routing_number",  # Financial numbers
+        "vin",
+        "license_plate",  # Vehicle identifiers
+        "confirmation_code",
+        "reference_number",  # Codes
+    ]
+
+    # Also check for columns ending with common ID patterns
+    id_patterns = ["_id", "_code", "_number", "_symbol"]
+
+    for column in df_prepared.columns:
+        column_lower = column.lower()
+
+        # Check if column should be treated as string
+        should_be_string = (
+            column_lower in [col.lower() for col in string_columns]
+            or any(column_lower.endswith(pattern) for pattern in id_patterns)
+            or column_lower in ["phone", "mobile", "fax", "zip", "postal"]
+        )
+
+        if should_be_string and column in df_prepared.columns:
+            # Convert to pandas string type (better than object for DuckDB)
+            if df_prepared[column].dtype == "object":
+                # Only convert if it's not already a string type
+                df_prepared[column] = df_prepared[column].astype("string")
+    return df_prepared
+
+
+def _get_duckdb_column_type(series: pd.Series) -> str:
+    """
+    Get appropriate DuckDB column type for a pandas Series.
+    """
+    dtype = series.dtype
+
+    # Handle pandas extension types
+    if pd.api.types.is_string_dtype(series):
+        return "VARCHAR"
+    elif pd.api.types.is_integer_dtype(series):
+        return "BIGINT"
+    elif pd.api.types.is_float_dtype(series):
+        return "DOUBLE"
+    elif pd.api.types.is_bool_dtype(series):
+        return "BOOLEAN"
+    elif pd.api.types.is_datetime64_any_dtype(series):
+        return "TIMESTAMP"
+    elif dtype == "object":
+        # For object dtype, check the actual values
+        non_null = series.dropna()
+        if len(non_null) > 0:
+            first_val = non_null.iloc[0]
+            if isinstance(first_val, str):
+                return "VARCHAR"
+            elif isinstance(first_val, (int, float)):
+                return "DOUBLE"
+            else:
+                return "VARCHAR"  # Default to VARCHAR for unknown object types
+        else:
+            return "VARCHAR"
+    else:
+        return "VARCHAR"  # Default fallback
+
+
+def _create_table_with_explicit_schema(
+    conn: duckdb.DuckDBPyConnection, full_table_name: str, df: pd.DataFrame
+) -> None:
+    """
+    Create table with explicit column types to prevent DuckDB type inference issues.
+    """
+    # Build CREATE TABLE statement with explicit column types
+    column_definitions = []
+
+    for column in df.columns:
+        duckdb_type = _get_duckdb_column_type(df[column])
+        # Escape column names that might be reserved words
+        escaped_column = (
+            f'"{column}"' if column.lower() in ["order", "group", "select"] else column
+        )
+        column_definitions.append(f"{escaped_column} {duckdb_type}")
+
+    create_sql = f"CREATE TABLE {full_table_name} ({', '.join(column_definitions)})"
+
+    conn.execute(create_sql)
+
+
+def _write_dataframe_to_duckdb(
+    conn: duckdb.DuckDBPyConnection,
+    df: pd.DataFrame,
+    schema_name: str,
+    table_name: str,
+    how: str,
+) -> None:
+    """
+    Write DataFrame to DuckDB using the safest method to preserve types.
+    """
+    # Register the DataFrame as a temporary table
+    temp_table_name = f"temp_df_{table_name}_{id(df)}"
+    conn.register(temp_table_name, df)
+
+    try:
+        full_table_name = f"{schema_name}.{table_name}"
+
+        if how == "truncate":
+            # For truncate, we've already created the table with explicit schema
+            conn.execute(
+                f"INSERT INTO {full_table_name} SELECT * FROM {temp_table_name}"
+            )
+        else:
+            # For append, insert into existing table
+            conn.execute(
+                f"INSERT INTO {full_table_name} SELECT * FROM {temp_table_name}"
+            )
+
+    finally:
+        # Always clean up the temporary table
+        try:
+            conn.unregister(temp_table_name)
+        except Exception as e:
+            log(
+                f"Warning: Could not unregister temporary table {temp_table_name}: {e}",
+                "warning",
+            )
+
+
+# Keep the rest of your existing functions unchanged
+def setup_logging() -> logging.Logger:
+    """Set up logging configuration."""
+    # Create logs directory structure
+    log_dir = Path("logs/loader")
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create logger
+    logger = logging.getLogger("earth.loader")
+    logger.setLevel(logging.INFO)
+
+    # Prevent duplicate handlers
+    if logger.handlers:
+        return logger
+
+    # Create file handler
+    log_file = log_dir / f"loader_{datetime.now().strftime('%Y%m%d')}.log"
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # Create formatter
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    # Add handlers to logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    return logger
+
+
+def log(message: str, level: str = "info") -> None:
+    """
+    Utility function for logging messages.
+
+    Args:
+        message: Message to log
+        level: Log level ('info', 'warning', 'error', 'debug')
+    """
+    logger = setup_logging()
+
+    level_map = {
+        "info": logger.info,
+        "warning": logger.warning,
+        "error": logger.error,
+        "debug": logger.debug,
+    }
+
+    log_func = level_map.get(level.lower(), logger.info)
+    log_func(message)
+
+
+@dataclass
+class DatabaseConfig:
+    """Configuration for DuckDB connection."""
+
+    data_dir: Path = Path("data")
+    env: str = "dev"
+    schema_name: str = "raw"
+
+    @property
+    def db_path(self) -> Path:
+        """Generate database path based on environment."""
+        db_filename = f"earth_{self.env}.duckdb"
+        return self.data_dir / self.env / db_filename
+
+    def __post_init__(self) -> None:
+        """Ensure the directory exists."""
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def for_dev(cls, schema_name: str = "raw") -> "DatabaseConfig":
+        """Create a development configuration."""
+        return cls(env="dev", schema_name=schema_name)
+
+    @classmethod
+    def for_prod(cls, schema_name: str = "raw") -> "DatabaseConfig":
+        """Create a production configuration."""
+        return cls(env="prod", schema_name=schema_name)
+
+    @classmethod
+    def for_testing(cls, schema_name: str = "test") -> "DatabaseConfig":
+        """Create a test configuration (uses dev environment with test schema)."""
+        return cls(env="dev", schema_name=schema_name)
+
+    def __str__(self) -> str:
+        """String representation showing key config details."""
+        return f"DatabaseConfig(env={self.env}, db_path={self.db_path}, schema={self.schema_name})"
+
+
+def connect_to_duckdb(
+    config: Optional[DatabaseConfig] = None,
+) -> duckdb.DuckDBPyConnection:
+    """
+    Create and return DuckDB connection.
+
+    Args:
+        config: Database configuration object
+
+    Returns:
+        DuckDB connection object
+    """
+    if config is None:
+        config = DatabaseConfig.for_dev()
+
+    try:
+        log(f"Connecting to DuckDB: {config}")
+        conn = duckdb.connect(str(config.db_path))  # Convert Path to string
+
+        # Create schema if it doesn't exist
+        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {config.schema_name}")
+        log(f"Ensured schema '{config.schema_name}' exists")
+
+        return conn
+
+    except Exception as e:
+        log(f"Failed to connect to DuckDB: {str(e)}", "error")
         raise
 
 

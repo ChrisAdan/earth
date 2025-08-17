@@ -1,115 +1,68 @@
 """
-Person profile generator with sanitization layer for realistic US data.
-Updated to use career progression helper for realistic job/salary correlation.
+Refactored person generator using the BaseGenerator pattern.
+
+Updates the existing PersonGenerator to inherit from BaseGenerator
+while maintaining all existing functionality.
 """
 
-import re
-from datetime import datetime, date, timezone
-from typing import Dict, Any, List, Optional, cast
-from dataclasses import dataclass, asdict
-from faker import Faker
+from typing import List, Dict, Any, Optional, cast
+from earth.generators.base import BaseGenerator, GeneratorConfig
+
+from datetime import date
 import uuid
 import random
 import numpy as np
-from utils import MIN_AGE, MAX_AGE, EMAIL_DOMAINS
-from earth.generators.career import generate_career_profile, CareerLevel
+import re
+
+from earth.core.utils import (
+    MIN_AGE,
+    MAX_AGE,
+    EMAIL_DOMAINS,
+    EMPLOYMENT_STATUSES,
+    EDUCATION_LEVELS,
+    MARITAL_STATUSES,
+    PersonProfile,
+)
+from earth.generators.career import generate_career_profile
 
 
-@dataclass
-class PersonProfile:
-    """Data class representing a person profile."""
+class PersonGenerator(BaseGenerator[PersonProfile]):
+    """
+    Person generator implementing the BaseGenerator interface.
 
-    person_id: str
-    first_name: str
-    last_name: str
-    full_name: str
-    gender: str
-    date_of_birth: date
-    age: int
-    email: str
-    phone_number: str
-    ssn: str
+    Provides consistent interface while maintaining all existing functionality
+    for generating realistic US person profiles.
+    """
 
-    # Address information
-    street_address: str
-    city: str
-    state: str
-    zip_code: str
-
-    # Professional information (updated to use career helper)
-    job_title: str
-    career_level: str  # CL-1 through CL-8 equivalent
-    employment_status: str
-    annual_income: int
-
-    # Digital footprint
-    username: str
-    ipv4_address: str
-    user_agent: str
-
-    # Personal details
-    blood_type: str
-    height_cm: int
-    weight_kg: int
-    marital_status: str
-    education_level: str
-    country: str = "United States"
-    country_code: str = "US"
-
-    # Metadata
-    created_at: datetime = datetime.now(timezone.utc)
-    created_by: str = "earth_generator"
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return asdict(self)
-
-
-class PersonGenerator:
-    """Generator class for creating realistic person profiles with sanitization."""
-
-    def __init__(self, locale: str = "en_US", seed: Optional[int] = None):
-        """
-        Initialize the generator.
-
-        Args:
-            locale: Faker locale for generated data
-            seed: Random seed for reproducible results
-        """
-        self.fake = Faker(locale)
-        if seed:
-            Faker.seed(seed)
-            random.seed(seed)
+    def __init__(self, config: Optional[GeneratorConfig] = None):
+        """Initialize person generator."""
+        super().__init__(config)
 
         # Employment status options
-        self.employment_statuses = [
-            "Full-time",
-            "Part-time",
-            "Contract",
-            "Freelance",
-            "Unemployed",
-            "Student",
-            "Retired",
-            "Self-employed",
-        ]
+        self.employment_statuses = EMPLOYMENT_STATUSES
 
         # Education levels
-        self.education_levels = [
-            "High School",
-            "Some College",
-            "Associate Degree",
-            "Bachelor's Degree",
-            "Master's Degree",
-            "Doctoral Degree",
-        ]
+        self.education_levels = EDUCATION_LEVELS
 
         # Marital statuses
-        self.marital_statuses = [
-            "Single",
-            "Married",
-            "Divorced",
-            "Widowed",
-            "Separated",
+        self.marital_statuses = MARITAL_STATUSES
+
+    @property
+    def entity_name(self) -> str:
+        """Return the name of the entity this generator creates."""
+        return "person"
+
+    @property
+    def required_fields(self) -> List[str]:
+        """Return list of required fields for validation."""
+        return [
+            "person_id",
+            "first_name",
+            "last_name",
+            "email",
+            "age",
+            "job_title",
+            "annual_income",
         ]
 
     def _calculate_age(self, birth_date: date) -> int:
@@ -296,7 +249,7 @@ class PersonGenerator:
             )[0]
         else:
             # Full distribution for older adults
-            return random.choice(self.education_levels)
+            return cast(str, random.choice(self.education_levels))
 
     def generate_profile(self) -> PersonProfile:
         """Generate a single sanitized person profile for US residents."""
@@ -305,11 +258,11 @@ class PersonGenerator:
         base_profile = self.fake.profile()
 
         # Extract and clamp age
-        birth_date = cast(date, base_profile["birthdate"])
+        birth_date = base_profile["birthdate"]
         age = np.clip(self._calculate_age(birth_date), MIN_AGE, MAX_AGE)
 
         # Clean name and extract components
-        name_data = self._clean_name(cast(str, base_profile["name"]))
+        name_data = self._clean_name(base_profile["name"])
 
         # Generate realistic email based on cleaned name
         email = self._generate_realistic_email(
@@ -317,10 +270,10 @@ class PersonGenerator:
         )
 
         # Map gender from Faker's sex field
-        gender = self._map_faker_gender(cast(str, base_profile["sex"]))
+        gender = self._map_faker_gender(base_profile["sex"])
 
         # Get sanitized US address components
-        address_parts = self._sanitize_us_address(cast(str, base_profile["address"]))
+        address_parts = self._sanitize_us_address(base_profile["address"])
 
         # Generate age-appropriate employment status and education
         employment_status = self._get_weighted_employment_status(age)
@@ -352,7 +305,7 @@ class PersonGenerator:
             age=age,
             email=email,
             phone_number=phone_number,
-            ssn=cast(str, base_profile["ssn"]),
+            ssn=base_profile["ssn"],
             # Sanitized US address
             street_address=address_parts["street_address"],
             city=address_parts["city"],
@@ -366,7 +319,7 @@ class PersonGenerator:
             employment_status=employment_status,
             annual_income=career_profile.annual_income,
             # Digital (username from faker)
-            username=cast(str, base_profile["username"]),
+            username=base_profile["username"],
             ipv4_address=ipv4_address,
             user_agent=user_agent,
             # Personal
@@ -379,10 +332,96 @@ class PersonGenerator:
 
         return profile
 
+    def _custom_validation(self, profile_dict: Dict[str, Any]) -> bool:
+        """
+        Custom validation for person profiles.
 
+        Args:
+            profile_dict: Profile dictionary to validate
+
+        Returns:
+            True if valid, False otherwise
+        """
+        name = profile_dict.get("full_name", "")
+        # Validate age range
+        age = profile_dict.get("age", 0)
+        print(f"Beginning custom PersonProfile validation for {name}")
+        print(f"{name} is age: {age}")
+        if not isinstance(age, np.int64) or age < 18 or age > 100:
+            print(f"Failed Age validation for {name}")
+            return False
+
+        # Validate email format
+        email = profile_dict.get("email", "")
+        print(f"{name} has email: {email}")
+        if not isinstance(email, str) or "@" not in email:
+            print(f"Failed email validation for {name}")
+            return False
+
+        # Validate income
+        income = profile_dict.get("annual_income", 0)
+        print(f"{name}'s annual income: {income}")
+        if not isinstance(income, int) or income < 0:
+            print(f"Failed income validation for {name}")
+            return False
+
+        return True
+
+    def _get_custom_stats(self, profiles: List[PersonProfile]) -> Dict[str, Any]:
+        """
+        Get person-specific statistics.
+
+        Args:
+            profiles: List of generated person profiles
+
+        Returns:
+            Dictionary with person statistics
+        """
+        if not profiles:
+            return {}
+
+        # Age statistics
+        ages = [p.age for p in profiles]
+        age_stats = {
+            "min_age": min(ages),
+            "max_age": max(ages),
+            "avg_age": sum(ages) / len(ages),
+        }
+
+        # Gender distribution
+        gender_counts: dict[str, int] = cast(dict, {})
+        for profile in profiles:
+            gender = profile.gender
+            gender_counts[gender] = gender_counts.get(gender, 0) + 1
+
+        # Career level distribution
+        career_counts: dict[str, int] = cast(dict, {})
+        for profile in profiles:
+            career = profile.career_level
+            career_counts[career] = career_counts.get(career, 0) + 1
+
+        # Income statistics
+        incomes = [p.annual_income for p in profiles]
+        income_stats = {
+            "min_income": min(incomes),
+            "max_income": max(incomes),
+            "avg_income": sum(incomes) / len(incomes),
+        }
+
+        return {
+            "age_stats": age_stats,
+            "gender_distribution": gender_counts,
+            "career_distribution": career_counts,
+            "income_stats": income_stats,
+        }
+
+
+# Backward compatibility functions
 def generate_person(locale: str = "en_US", seed: Optional[int] = None) -> PersonProfile:
     """
     Generate a single person profile.
+
+    Backward compatibility function that uses the new generator.
 
     Args:
         locale: Faker locale for generated data
@@ -391,7 +430,8 @@ def generate_person(locale: str = "en_US", seed: Optional[int] = None) -> Person
     Returns:
         PersonProfile object
     """
-    generator = PersonGenerator(locale=locale, seed=seed)
+    config = GeneratorConfig(locale=locale, seed=seed)
+    generator = PersonGenerator(config)
     return generator.generate_profile()
 
 
@@ -401,6 +441,8 @@ def generate_multiple_persons(
     """
     Generate multiple person profiles.
 
+    Backward compatibility function that uses the new generator.
+
     Args:
         count: Number of profiles to generate
         locale: Faker locale for generated data
@@ -409,23 +451,6 @@ def generate_multiple_persons(
     Returns:
         List of PersonProfile objects
     """
-    generator = PersonGenerator(locale=locale, seed=seed)
-    return [generator.generate_profile() for _ in range(count)]
-
-
-# Example usage and testing
-if __name__ == "__main__":
-    # Generate a few sample profiles to test career progression
-    print("Generating realistic US person profiles with career progression...\n")
-
-    for i in range(8):
-        person = generate_person(seed=i)
-        print(f"Profile {i+1}:")
-        print(f"Name: {person.full_name} (Age: {person.age})")
-        print(f"Email: {person.email}")
-        print(f"Phone: {person.phone_number}")
-        print(f"Career: {person.career_level} - {person.job_title}")
-        print(f"Income: ${person.annual_income:,} ({person.employment_status})")
-        print(f"Location: {person.city}, {person.state} {person.zip_code}")
-        print(f"Education: {person.education_level}")
-        print("-" * 80)
+    config = GeneratorConfig(locale=locale, seed=seed)
+    generator = PersonGenerator(config)
+    return cast(list[PersonProfile], generator.generate_batch(count))

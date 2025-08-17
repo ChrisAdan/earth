@@ -1,248 +1,436 @@
 #!/usr/bin/env python3
 """
-Earth Data Generator - Application Orchestrator
+Earth Data Generator - Main Application Entry Point
 
-This is the main application entry point that orchestrates data generation workflows.
-It imports from the earth package (src/earth/) to perform complex data generation tasks.
-
-Usage:
-    python app/main.py                    # Interactive menu
-    python app/main.py --generate-people 150000
-    python app/main.py --generate-companies
-    python app/main.py --generate-all
+Interactive CLI for generating synthetic data using the unified workflow system.
+Enhanced to support multiple workflow types and scalable entity generation.
 """
 
-import argparse
 import sys
+import os
 from pathlib import Path
+from typing import Dict, Any
 
-# Add src to path so we can import from earth package during development
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add src to path for package imports
+current_dir = Path(__file__).parent
+project_root = current_dir.parent
+sys.path.insert(0, str(project_root / "src"))
 
 # Import from earth package
-from earth import generate_multiple_persons, check_module_availability, info as earth_info
-from earth.core.loader import DuckDBLoader
-from earth.core.utils import setup_logging
+from earth.core.loader import (
+    DatabaseConfig,
+    connect_to_duckdb,
+    get_table_info,
+    log,
+)
 
-# Import application-specific workflows
-from workflows.generate_people import PeopleWorkflow
-# from workflows.generate_companies import CompaniesWorkflow  # Will be implemented
-# from workflows.full_dataset import FullDatasetWorkflow    # Will be implemented
+# Import workflow system from app layer
+from workflows import (
+    WorkflowConfig,
+    DatasetSpec,
+    AVAILABLE_WORKFLOWS,
+    get_workflow_info,
+    create_workflow_from_name,
+)
 
 
-class EarthApp:
-    """Main application orchestrator for Earth data generation."""
-    
+class EarthCLI:
+    """Enhanced command-line interface for Earth data generator with unified workflow support."""
+
     def __init__(self):
-        self.logger = setup_logging("earth_app")
-        self.loader = DuckDBLoader()
-        self.module_availability = check_module_availability()
-        
-    def show_banner(self):
-        """Display application banner."""
-        print("=" * 60)
-        print("🌍 Earth Data Generator - Application Orchestrator")
-        print("=" * 60)
-        earth_info()
-        print()
-        
-    def show_menu(self):
-        """Display interactive menu."""
-        print("📋 Available Operations:")
-        print("1. Generate People (150k records)")
-        print("2. Generate Companies" + (" ✅" if self.module_availability['companies'] else " ❌ (install earth[companies])"))
-        print("3. Generate Campaigns" + (" ✅" if self.module_availability['campaigns'] else " ❌ (install earth[campaigns])"))
-        print("4. Generate Automotive Data" + (" ✅" if self.module_availability['automotive'] else " ❌ (install earth[automotive])"))
-        print("5. Generate Full Dataset" + (" ✅" if all(self.module_availability.values()) else " ❌ (install earth[all])"))
-        print("6. Database Status")
-        print("7. Clear Database")
-        print("0. Exit")
-        print()
-        
-    def generate_people_workflow(self, count: int = 150_000):
-        """Execute people generation workflow."""
-        self.logger.info(f"Starting people generation workflow: {count:,} records")
-        
-        workflow = PeopleWorkflow(self.loader, self.logger)
-        success = workflow.execute(count)
-        
-        if success:
-            print(f"✅ Successfully generated {count:,} person records")
-            self.show_database_status()
-        else:
-            print("❌ People generation workflow failed")
-            
-    def generate_companies_workflow(self):
-        """Execute companies generation workflow."""
-        if not self.module_availability['companies']:
-            print("❌ Companies module not available. Install with: pip install earth[companies]")
-            return
-            
-        self.logger.info("Starting companies generation workflow")
-        
-        workflow = CompaniesWorkflow(self.loader, self.logger)
-        success = workflow.execute()
-        
-        if success:
-            print("✅ Successfully generated company records")
-            self.show_database_status()
-        else:
-            print("❌ Companies generation workflow failed")
-            
-    def generate_full_dataset(self):
-        """Generate complete dataset with all modules."""
-        if not all(self.module_availability.values()):
-            missing = [k for k, v in self.module_availability.items() if not v]
-            print(f"❌ Missing modules: {', '.join(missing)}")
-            print("Install all modules with: pip install earth[all]")
-            return
-            
-        self.logger.info("Starting full dataset generation")
-        
-        workflow = FullDatasetWorkflow(self.loader, self.logger)
-        success = workflow.execute()
-        
-        if success:
-            print("✅ Successfully generated complete dataset")
-            self.show_database_status()
-        else:
-            print("❌ Full dataset generation failed")
-            
-    def show_database_status(self):
-        """Show current database status."""
-        print("\n📊 Database Status:")
-        
+        self.conn = None
+        self.db_config = DatabaseConfig.for_dev()
+
+    def initialize_database(self) -> None:
+        """Initialize database connection and ensure schemas exist."""
         try:
-            # Check people table
-            people_count = self.loader.execute_query("SELECT COUNT(*) FROM people").fetchone()[0]
-            print(f"   People: {people_count:,} records")
-        except:
-            print("   People: Not found")
-            
-        # Check optional tables if modules are available
-        if self.module_availability['companies']:
-            try:
-                companies_count = self.loader.execute_query("SELECT COUNT(*) FROM companies").fetchone()[0]
-                print(f"   Companies: {companies_count:,} records")
-            except:
-                print("   Companies: Not found")
-                
-        if self.module_availability['campaigns']:
-            try:
-                campaigns_count = self.loader.execute_query("SELECT COUNT(*) FROM campaigns").fetchone()[0]
-                print(f"   Campaigns: {campaigns_count:,} records")
-            except:
-                print("   Campaigns: Not found")
-                
-        if self.module_availability['automotive']:
-            try:
-                vehicles_count = self.loader.execute_query("SELECT COUNT(*) FROM vehicles").fetchone()[0]
-                print(f"   Vehicles: {vehicles_count:,} records")
-            except:
-                print("   Vehicles: Not found")
-        print()
-        
-    def clear_database(self):
-        """Clear all database tables."""
-        confirm = input("⚠️  Are you sure you want to clear all data? (yes/no): ")
-        if confirm.lower() == 'yes':
-            self.logger.info("Clearing database")
-            # Implementation depends on your loader's capabilities
-            try:
-                self.loader.execute_query("DROP TABLE IF EXISTS people")
-                self.loader.execute_query("DROP TABLE IF EXISTS companies")
-                self.loader.execute_query("DROP TABLE IF EXISTS campaigns") 
-                self.loader.execute_query("DROP TABLE IF EXISTS vehicles")
-                print("✅ Database cleared")
-            except Exception as e:
-                print(f"❌ Error clearing database: {e}")
-        else:
-            print("Database clear cancelled")
-            
-    def interactive_mode(self):
-        """Run in interactive menu mode."""
-        self.show_banner()
-        
+            self.conn = connect_to_duckdb(self.db_config)
+            log("Database connection established successfully")
+        except Exception as e:
+            log(f"Failed to initialize database: {e}", "error")
+            sys.exit(1)
+
+    def display_welcome(self) -> None:
+        """Display welcome message and available workflows."""
+        print("\n" + "=" * 70)
+        print("🌍 EARTH - Synthetic Data Generator")
+        print("=" * 70)
+        print("\n📋 Available Data Generation Workflows:")
+
+        for i, (name, info) in enumerate(AVAILABLE_WORKFLOWS.items(), 1):
+            print(f"   {i}. {name.replace('_', ' ').title()}")
+            print(f"      {info['description']}")
+            if info.get("default_count"):
+                print(f"      Default records: {info['default_count']:,}")
+            print()
+
+    def get_workflow_choice(self) -> str:
+        """Get user's workflow choice."""
+        workflows = list(AVAILABLE_WORKFLOWS.keys())
+
         while True:
-            self.show_menu()
+            print("🔄 Select a workflow:")
+            for i, name in enumerate(workflows, 1):
+                display_name = name.replace("_", " ").title()
+                print(f"   {i}. {display_name}")
+
             try:
-                choice = input("Select option: ").strip()
-                
-                if choice == '0':
-                    print("Goodbye! 👋")
-                    break
-                elif choice == '1':
-                    count = input("Enter number of people to generate (default 150000): ").strip()
-                    count = int(count) if count else 150_000
-                    self.generate_people_workflow(count)
-                elif choice == '2':
-                    self.generate_companies_workflow()
-                elif choice == '3':
-                    print("Campaigns module coming in v0.3.0!")
-                elif choice == '4':
-                    print("Automotive module coming in v0.4.0!")
-                elif choice == '5':
-                    self.generate_full_dataset()
-                elif choice == '6':
-                    self.show_database_status()
-                elif choice == '7':
-                    self.clear_database()
+                choice = input(f"\nEnter choice (1-{len(workflows)}): ").strip()
+                idx = int(choice) - 1
+                if 0 <= idx < len(workflows):
+                    return workflows[idx]
                 else:
-                    print("Invalid option. Please try again.")
-                    
-            except KeyboardInterrupt:
-                print("\n\nExiting... 👋")
+                    print(f"❌ Please enter a number between 1 and {len(workflows)}")
+            except ValueError:
+                print("❌ Please enter a valid number")
+
+    def get_workflow_parameters(self, workflow_name: str) -> tuple:
+        """
+        Get workflow-specific parameters from user.
+
+        Returns:
+            Tuple of (record_count_or_spec, write_mode)
+        """
+        if workflow_name == "full_dataset":
+            return self._get_full_dataset_parameters()
+        else:
+            return self._get_single_workflow_parameters(workflow_name)
+
+    def _get_full_dataset_parameters(self) -> tuple:
+        """Get parameters for full dataset generation."""
+        print("\n📊 Full Dataset Configuration:")
+        print(
+            "   This will generate a complete synthetic dataset with multiple entity types"
+        )
+
+        # Check existing data across all relevant tables
+        tables_to_check = ["persons", "companies"]
+        existing_data = {}
+
+        for table in tables_to_check:
+            table_info = get_table_info(self.conn, "raw", table)
+            if table_info["exists"] and table_info["row_count"] > 0:
+                existing_data[table] = table_info["row_count"]
+
+        if existing_data:
+            print(f"\n📈 Existing data found:")
+            for table, count in existing_data.items():
+                print(f"   • {table}: {count:,} records")
+
+            print("\n🔄 Data Management Options:")
+            print("   1. Replace all existing data with new dataset")
+            print("   2. Cancel and run individual workflows instead")
+
+            while True:
+                choice = input("\nSelect option (1 or 2): ").strip()
+                if choice == "1":
+                    write_mode = "truncate"
+                    break
+                elif choice == "2":
+                    print(
+                        "💡 Tip: Choose 'people' or 'companies' workflow for individual entity generation"
+                    )
+                    return None, None
+                else:
+                    print("❌ Please enter 1 or 2")
+        else:
+            write_mode = "truncate"
+
+        # Get dataset specifications
+        print(f"\n📋 Dataset Size Configuration:")
+
+        # People count
+        while True:
+            try:
+                people_input = input(
+                    "Number of people to generate (default: 1000): "
+                ).strip()
+                people_count = int(people_input) if people_input else 1000
+                if people_count <= 0:
+                    print("❌ Please enter a positive number")
+                    continue
                 break
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                
-    def run_command_line(self, args):
-        """Run with command line arguments."""
-        if args.generate_people:
-            self.generate_people_workflow(args.generate_people)
-        elif args.generate_companies:
-            self.generate_companies_workflow()
-        elif args.generate_all:
-            self.generate_full_dataset()
-        elif args.status:
-            self.show_database_status()
+            except ValueError:
+                print("❌ Please enter a valid number")
+
+        # Companies count
+        while True:
+            try:
+                companies_input = input(
+                    "Number of companies to generate (default: 100): "
+                ).strip()
+                companies_count = int(companies_input) if companies_input else 100
+                if companies_count <= 0:
+                    print("❌ Please enter a positive number")
+                    continue
+                break
+            except ValueError:
+                print("❌ Please enter a valid number")
+
+        # Validate ratio
+        ratio = people_count / companies_count
+        if ratio < 5 or ratio > 50:
+            print(f"⚠️  Warning: People-to-companies ratio is {ratio:.1f}")
+            print(f"   Realistic range is 5-50 people per company")
+            confirm = input("Continue anyway? (y/N): ").strip().lower()
+            if confirm not in ["y", "yes"]:
+                return self._get_full_dataset_parameters()  # Restart
+
+        dataset_spec = DatasetSpec(
+            people_count=people_count, companies_count=companies_count
+        )
+
+        return dataset_spec, write_mode
+
+    def _get_single_workflow_parameters(self, workflow_name: str) -> tuple:
+        """Get parameters for single workflow generation."""
+        workflow_info = get_workflow_info(workflow_name)
+        schema_name = workflow_info["schema"]
+        table_name = workflow_info["table"]
+        default_count = workflow_info.get("default_count", 100)
+
+        # Check existing data
+        table_info = get_table_info(self.conn, schema_name, table_name)
+
+        if table_info["exists"] and table_info["row_count"] > 0:
+            print(f"\n📊 Current {workflow_name} data:")
+            print(f"   • Table: {schema_name}.{table_name}")
+            print(f"   • Existing records: {table_info['row_count']:,}")
+
+            print("\n🔄 Data Management Options:")
+            print("   1. Append new records to existing data")
+            print("   2. Replace all existing data with new records")
+
+            while True:
+                choice = input("\nSelect option (1 or 2): ").strip()
+                if choice in ["1", "2"]:
+                    write_mode = "append" if choice == "1" else "truncate"
+                    break
+                print("❌ Please enter 1 or 2")
         else:
-            print("No valid command specified. Use --help for options or run without args for interactive mode.")
+            print(
+                f"\n📊 {workflow_name.title()} generation - new table will be created"
+            )
+            write_mode = "truncate"
+
+        # Get record count
+        while True:
+            try:
+                prompt = f"\n📈 How many {workflow_name} records to generate"
+                if default_count:
+                    prompt += f" (default: {default_count:,})"
+                prompt += "? "
+
+                count_input = input(prompt).strip()
+                record_count = int(count_input) if count_input else default_count
+
+                if record_count <= 0:
+                    print("❌ Please enter a positive number")
+                    continue
+                if record_count > 100000:
+                    confirm = (
+                        input(
+                            f"⚠️  Generating {record_count:,} records may take time. Continue? (y/N): "
+                        )
+                        .strip()
+                        .lower()
+                    )
+                    if confirm not in ["y", "yes"]:
+                        continue
+                break
+            except ValueError:
+                print("❌ Please enter a valid number")
+
+        return record_count, write_mode
+
+    def execute_workflow(
+        self, workflow_name: str, parameters: Any, write_mode: str
+    ) -> None:
+        """Execute the selected workflow with given parameters."""
+        try:
+            # Create workflow configuration
+            config = WorkflowConfig(
+                batch_size=1000,
+                max_records=1000000,
+                seed=42,  # For reproducible results
+                write_mode=write_mode,
+            )
+
+            # Create and execute workflow
+            if workflow_name == "full_dataset":
+                dataset_spec = parameters
+                workflow = create_workflow_from_name(
+                    workflow_name, config, self.db_config, dataset_spec=dataset_spec
+                )
+
+                print(f"\n🚀 Starting full dataset generation...")
+                print(f"   • People: {dataset_spec.people_count:,}")
+                print(f"   • Companies: {dataset_spec.companies_count:,}")
+
+                result = workflow.execute()
+
+                if result.success:
+                    summary = workflow.get_execution_summary()
+                    self._display_full_dataset_results(summary)
+                else:
+                    print(f"❌ Full dataset generation failed: {result.error_message}")
+
+            else:
+                record_count = parameters
+                workflow = create_workflow_from_name(
+                    workflow_name, config, self.db_config
+                )
+
+                action_text = (
+                    "appending to existing data"
+                    if write_mode == "append"
+                    else "replacing existing data"
+                )
+                print(f"\n🚀 Starting {workflow_name} generation...")
+                print(f"   • Records: {record_count:,}")
+                print(f"   • Mode: {action_text}")
+
+                result = workflow.execute(record_count)
+
+                if result.success:
+                    self._display_single_workflow_results(
+                        workflow_name, result, workflow
+                    )
+                else:
+                    print(
+                        f"❌ {workflow_name} generation failed: {result.error_message}"
+                    )
+
+        except Exception as e:
+            log(f"Error executing workflow: {e}", "error")
+            print(f"❌ Workflow execution error: {e}")
+
+    def _display_single_workflow_results(
+        self, workflow_name: str, result, workflow
+    ) -> None:
+        """Display results for single workflow execution."""
+        print(f"\n✅ {workflow_name.title()} generation complete!")
+        print(f"   • Records generated: {result.records_generated:,}")
+        print(f"   • Records stored: {result.records_stored:,}")
+        print(f"   • Execution time: {result.execution_time:.1f} seconds")
+
+        if result.execution_time > 0:
+            print(
+                f"   • Rate: {result.records_generated/result.execution_time:.0f} records/second"
+            )
+
+        # Show basic statistics if available
+        try:
+            # Reconnect for statistics (workflow may have closed connection)
+            if hasattr(workflow, "setup_database"):
+                workflow.setup_database()
+                final_stats = workflow.get_current_status()
+                if final_stats and final_stats.get("row_count"):
+                    print(
+                        f"   • Final table size: {final_stats['row_count']:,} records"
+                    )
+        except Exception as e:
+            log(f"Error getting final statistics: {e}", "warning")
+
+    def _display_full_dataset_results(self, summary: Dict[str, Any]) -> None:
+        """Display results for full dataset generation."""
+        print(f"\n✅ Full dataset generation complete!")
+
+        execution_summary = summary.get("execution_summary", {})
+        performance_metrics = summary.get("performance_metrics", {})
+
+        print(
+            f"   • Total records: {execution_summary.get('total_records_generated', 0):,}"
+        )
+        print(
+            f"   • Total time: {execution_summary.get('overall_duration', 0):.1f} seconds"
+        )
+
+        avg_rate = performance_metrics.get("average_records_per_second", 0)
+        if avg_rate > 0:
+            print(f"   • Average rate: {avg_rate:.0f} records/second")
+
+        # Show workflow breakdown
+        workflow_steps = summary.get("workflow_steps", [])
+        if workflow_steps:
+            print(f"\n📊 Workflow breakdown:")
+            for step in workflow_steps:
+                status_icon = "✅" if step.get("status") == "completed" else "❌"
+                workflow_name = step.get("workflow_name", "unknown")
+                records = step.get("records_generated", 0)
+                duration = step.get("duration", 0)
+                print(
+                    f"   {status_icon} {workflow_name.title()}: {records:,} records in {duration:.1f}s"
+                )
+
+    def run(self) -> None:
+        """Main application runner with enhanced workflow support."""
+        print("Initializing Earth Data Generator...")
+
+        # Initialize database
+        self.initialize_database()
+
+        # Display welcome and workflow options
+        self.display_welcome()
+
+        # Get user's workflow choice
+        workflow_name = self.get_workflow_choice()
+
+        # Get workflow-specific parameters
+        parameters, write_mode = self.get_workflow_parameters(workflow_name)
+
+        if parameters is None:  # User cancelled
+            print("❌ Operation cancelled by user")
+            return
+
+        # Confirm execution
+        if workflow_name == "full_dataset":
+            dataset_spec = parameters
+            print(f"\n🚀 Ready to generate full dataset:")
+            print(f"   • People: {dataset_spec.people_count:,}")
+            print(f"   • Companies: {dataset_spec.companies_count:,}")
+            print(f"   • Mode: {write_mode}")
+        else:
+            record_count = parameters
+            action_text = (
+                "append to existing data"
+                if write_mode == "append"
+                else "replace existing data"
+            )
+            print(
+                f"\n🚀 Ready to generate {record_count:,} {workflow_name} records and {action_text}"
+            )
+
+        confirm = input("Continue? (Y/n): ").strip().lower()
+
+        if confirm in ["", "y", "yes"]:
+            # Execute the workflow
+            self.execute_workflow(workflow_name, parameters, write_mode)
+
+            print(f"\n🎉 Earth data generation complete!")
+            print(f"   Database location: {os.path.abspath('earth.duckdb')}")
+            print(f"   Logs location: {os.path.abspath('logs/loader/')}")
+        else:
+            print("❌ Generation cancelled by user")
+
+        # Close connection
+        if self.conn:
+            self.conn.close()
+            log("Database connection closed")
 
 
-def main():
+def main() -> None:
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Earth Data Generator Application")
-    
-    # Generation commands
-    parser.add_argument('--generate-people', type=int, metavar='N',
-                       help='Generate N person records (default: 150000)')
-    parser.add_argument('--generate-companies', action='store_true',
-                       help='Generate company records')
-    parser.add_argument('--generate-all', action='store_true', 
-                       help='Generate complete dataset (requires all modules)')
-    
-    # Utility commands
-    parser.add_argument('--status', action='store_true',
-                       help='Show database status')
-    parser.add_argument('--clear', action='store_true',
-                       help='Clear database (interactive confirmation)')
-                       
-    args = parser.parse_args()
-    
-    # Create application instance
-    app = EarthApp()
-    
-    # Run in appropriate mode
-    if len(sys.argv) == 1:
-        # No arguments - interactive mode
-        app.interactive_mode()
-    else:
-        # Command line mode
-        if args.clear:
-            app.clear_database()
-        else:
-            app.run_command_line(args)
+    try:
+        cli = EarthCLI()
+        cli.run()
+    except KeyboardInterrupt:
+        print("\n\n❌ Generation interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        log(f"Unexpected error in main: {e}", "error")
+        print(f"❌ Unexpected error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
