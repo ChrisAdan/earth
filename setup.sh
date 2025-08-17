@@ -29,22 +29,47 @@ pip install pandas>=2.0.0 duckdb>=0.9.0 faker>=20.0.0 typing-extensions>=4.0.0
 
 # Install package in development mode
 echo "🔨 Installing Earth package in development mode..."
-pip install -e ./src
+pip install -e .
 
 # Create necessary directories
 echo "📁 Creating project structure..."
 mkdir -p logs/loader
 mkdir -p data/raw
+mkdir -p data/schemas
+mkdir -p data/samples
 
-# Set permissions
+# Set permissions for executable files
 chmod +x app/main.py
+
+# Create __init__.py files for Python packages (if they don't exist)
+echo "🐍 Ensuring Python package structure..."
+touch app/__init__.py
+touch app/workflows/__init__.py
+touch src/earth/__init__.py
+touch src/earth/core/__init__.py
+touch src/earth/generators/__init__.py
+touch src/earth/modules/__init__.py
+touch tests/__init__.py
+
+# Optional: Install development dependencies if requirements.txt exists
+if [ -f "requirements.txt" ]; then
+    echo "📚 Installing development dependencies from requirements.txt..."
+    pip install -r requirements.txt
+fi
 
 echo ""
 echo "🎉 Setup complete!"
 echo ""
-echo "To get started:"
+echo "📁 Project structure created:"
+echo "   ├── app/              (Application layer)"
+echo "   ├── src/earth/        (Installable package)"
+echo "   ├── logs/             (Application logs)"
+echo "   ├── data/             (Data and schemas)"
+echo "   └── tests/            (Test suite)"
+echo ""
+echo "🚀 To get started:"
 echo "  1. Activate the virtual environment:"
-echo "     source earth-env/bin/activate"
+echo "     source .venv/bin/activate"
 echo ""
 echo "  2. Run the main application:"
 echo "     python app/main.py"
@@ -52,5 +77,10 @@ echo ""
 echo "  3. Or run directly:"
 echo "     ./app/main.py"
 echo ""
-echo "📚 For development dependencies (dbt, prefect), run:"
+echo "📝 For development:"
+echo "   • Tests: python -m pytest tests/"
+echo "   • Package import: from earth.core import loader"
+echo "   • Application workflow: check app/workflows/"
+echo ""
+echo "📚 For additional development tools, install:"
 echo "     pip install -r requirements.txt"

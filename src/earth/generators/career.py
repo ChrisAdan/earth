@@ -3,14 +3,15 @@ Career helper module for generating realistic career progression data.
 Maps age to career level, then determines appropriate job title and salary.
 """
 
-from utils import (
+from earth.core.utils import (
     CareerProfile,
     CareerLevel,
     CAREER_TITLES,
     SALARY_RANGES,
-    INDUSTRY_MULTIPLIERS,
+    IndustryMetadata,
 )
 import random
+from typing import cast
 
 
 def determine_career_level(age: int) -> CareerLevel:
@@ -88,16 +89,8 @@ def select_industry() -> str:
     Returns:
         Industry key
     """
-    industries = [
-        "tech",
-        "business",
-        "sales_marketing",
-        "healthcare",
-        "education",
-        "general",
-    ]
-    weights = [0.15, 0.20, 0.20, 0.15, 0.10, 0.20]  # Realistic US job distribution
-    return random.choices(industries, weights=weights)[0]
+    industries = list(IndustryMetadata.__members__.keys())
+    return cast(str, random.choices(industries)[0])
 
 
 def calculate_salary(career_level: CareerLevel, industry: str, age: int) -> int:
@@ -115,7 +108,7 @@ def calculate_salary(career_level: CareerLevel, industry: str, age: int) -> int:
     base_min, base_max = SALARY_RANGES[career_level]
 
     # Industry multiplier
-    industry_mult = INDUSTRY_MULTIPLIERS.get(industry, 1.0)
+    industry_mult = getattr(IndustryMetadata, industry).value
 
     # Experience within level (age-based fine-tuning)
     experience_mult = 1.0
@@ -150,7 +143,9 @@ def generate_career_profile(age: int) -> CareerProfile:
     industry = select_industry()
 
     # Get job title for this level and industry
-    job_titles = CAREER_TITLES[industry][career_level]
+    job_titles = IndustryMetadata._get_career_titles_for_industry(
+        industry, career_level
+    )
     job_title = random.choice(job_titles)
 
     # Calculate appropriate salary

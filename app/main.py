@@ -2,64 +2,200 @@
 """
 Earth Data Generator - Main Application Entry Point
 
-Interactive CLI for generating synthetic person data and managing the Earth database.
+Interactive CLI for generating synthetic data using the unified workflow system.
+Enhanced to support multiple workflow types and scalable entity generation.
 """
 
 import sys
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Any
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add src to path for package imports
+current_dir = Path(__file__).parent
+project_root = current_dir.parent
+sys.path.insert(0, str(project_root / "src"))
 
-import pandas as pd
-from loader import (
+# Import from earth package
+from earth.core.loader import (
     DatabaseConfig,
     connect_to_duckdb,
-    operate_on_table,
     get_table_info,
     log,
 )
-from generators.person import generate_multiple_persons
+
+# Import workflow system from app layer
+from workflows import (
+    WorkflowConfig,
+    DatasetSpec,
+    AVAILABLE_WORKFLOWS,
+    get_workflow_info,
+    create_workflow_from_name,
+)
 
 
 class EarthCLI:
-    """Command-line interface for Earth data generator."""
+    """Enhanced command-line interface for Earth data generator with unified workflow support."""
 
     def __init__(self):
         self.conn = None
-        self.schema_name = "raw"
-        self.table_name = "persons"
+        self.db_config = DatabaseConfig.for_dev()
 
     def initialize_database(self) -> None:
-        """Initialize database connection and ensure schema exists."""
+        """Initialize database connection and ensure schemas exist."""
         try:
-            self.conn = connect_to_duckdb(DatabaseConfig.for_dev())
+            self.conn = connect_to_duckdb(self.db_config)
             log("Database connection established successfully")
         except Exception as e:
             log(f"Failed to initialize database: {e}", "error")
             sys.exit(1)
 
-    def get_user_input(self) -> tuple[int, str]:
+    def display_welcome(self) -> None:
+        """Display welcome message and available workflows."""
+        print("\n" + "=" * 70)
+        print("🌍 EARTH - Synthetic Data Generator")
+        print("=" * 70)
+        print("\n📋 Available Data Generation Workflows:")
+
+        for i, (name, info) in enumerate(AVAILABLE_WORKFLOWS.items(), 1):
+            print(f"   {i}. {name.replace('_', ' ').title()}")
+            print(f"      {info['description']}")
+            if info.get("default_count"):
+                print(f"      Default records: {info['default_count']:,}")
+            print()
+
+    def get_workflow_choice(self) -> str:
+        """Get user's workflow choice."""
+        workflows = list(AVAILABLE_WORKFLOWS.keys())
+
+        while True:
+            print("🔄 Select a workflow:")
+            for i, name in enumerate(workflows, 1):
+                display_name = name.replace("_", " ").title()
+                print(f"   {i}. {display_name}")
+
+            try:
+                choice = input(f"\nEnter choice (1-{len(workflows)}): ").strip()
+                idx = int(choice) - 1
+                if 0 <= idx < len(workflows):
+                    return workflows[idx]
+                else:
+                    print(f"❌ Please enter a number between 1 and {len(workflows)}")
+            except ValueError:
+                print("❌ Please enter a valid number")
+
+    def get_workflow_parameters(self, workflow_name: str) -> tuple:
         """
-        Get user input for record generation preferences.
+        Get workflow-specific parameters from user.
 
         Returns:
-            Tuple of (record_count, action_choice)
+            Tuple of (record_count_or_spec, write_mode)
         """
-        print("\n" + "=" * 60)
-        print("🌍 EARTH - Synthetic Data Generator")
-        print("=" * 60)
+        if workflow_name == "full_dataset":
+            return self._get_full_dataset_parameters()
+        else:
+            return self._get_single_workflow_parameters(workflow_name)
+
+    def _get_full_dataset_parameters(self) -> tuple:
+        """Get parameters for full dataset generation."""
+        print("\n📊 Full Dataset Configuration:")
+        print(
+            "   This will generate a complete synthetic dataset with multiple entity types"
+        )
+
+        # Check existing data across all relevant tables
+        tables_to_check = ["persons", "companies"]
+        existing_data = {}
+
+        for table in tables_to_check:
+            table_info = get_table_info(self.conn, "raw", table)
+            if table_info["exists"] and table_info["row_count"] > 0:
+                existing_data[table] = table_info["row_count"]
+
+        if existing_data:
+            print(f"\n📈 Existing data found:")
+            for table, count in existing_data.items():
+                print(f"   • {table}: {count:,} records")
+
+            print("\n🔄 Data Management Options:")
+            print("   1. Replace all existing data with new dataset")
+            print("   2. Cancel and run individual workflows instead")
+
+            while True:
+                choice = input("\nSelect option (1 or 2): ").strip()
+                if choice == "1":
+                    write_mode = "truncate"
+                    break
+                elif choice == "2":
+                    print(
+                        "💡 Tip: Choose 'people' or 'companies' workflow for individual entity generation"
+                    )
+                    return None, None
+                else:
+                    print("❌ Please enter 1 or 2")
+        else:
+            write_mode = "truncate"
+
+        # Get dataset specifications
+        print(f"\n📋 Dataset Size Configuration:")
+
+        # People count
+        while True:
+            try:
+                people_input = input(
+                    "Number of people to generate (default: 1000): "
+                ).strip()
+                people_count = int(people_input) if people_input else 1000
+                if people_count <= 0:
+                    print("❌ Please enter a positive number")
+                    continue
+                break
+            except ValueError:
+                print("❌ Please enter a valid number")
+
+        # Companies count
+        while True:
+            try:
+                companies_input = input(
+                    "Number of companies to generate (default: 100): "
+                ).strip()
+                companies_count = int(companies_input) if companies_input else 100
+                if companies_count <= 0:
+                    print("❌ Please enter a positive number")
+                    continue
+                break
+            except ValueError:
+                print("❌ Please enter a valid number")
+
+        # Validate ratio
+        ratio = people_count / companies_count
+        if ratio < 5 or ratio > 50:
+            print(f"⚠️  Warning: People-to-companies ratio is {ratio:.1f}")
+            print(f"   Realistic range is 5-50 people per company")
+            confirm = input("Continue anyway? (y/N): ").strip().lower()
+            if confirm not in ["y", "yes"]:
+                return self._get_full_dataset_parameters()  # Restart
+
+        dataset_spec = DatasetSpec(
+            people_count=people_count, companies_count=companies_count
+        )
+
+        return dataset_spec, write_mode
+
+    def _get_single_workflow_parameters(self, workflow_name: str) -> tuple:
+        """Get parameters for single workflow generation."""
+        workflow_info = get_workflow_info(workflow_name)
+        schema_name = workflow_info["schema"]
+        table_name = workflow_info["table"]
+        default_count = workflow_info.get("default_count", 100)
 
         # Check existing data
-        table_info = get_table_info(self.conn, self.schema_name, self.table_name)
+        table_info = get_table_info(self.conn, schema_name, table_name)
 
         if table_info["exists"] and table_info["row_count"] > 0:
-            print(f"\n📊 Current database status:")
-            print(f"   • Table: {self.schema_name}.{self.table_name}")
+            print(f"\n📊 Current {workflow_name} data:")
+            print(f"   • Table: {schema_name}.{table_name}")
             print(f"   • Existing records: {table_info['row_count']:,}")
-            print(f"   • Columns: {len(table_info['columns'])}")
 
             print("\n🔄 Data Management Options:")
             print("   1. Append new records to existing data")
@@ -68,20 +204,26 @@ class EarthCLI:
             while True:
                 choice = input("\nSelect option (1 or 2): ").strip()
                 if choice in ["1", "2"]:
-                    action_choice = "append" if choice == "1" else "truncate"
+                    write_mode = "append" if choice == "1" else "truncate"
                     break
                 print("❌ Please enter 1 or 2")
         else:
-            print(f"\n📊 Database status: New table will be created")
-            action_choice = "truncate"  # First time setup
+            print(
+                f"\n📊 {workflow_name.title()} generation - new table will be created"
+            )
+            write_mode = "truncate"
 
-        # Get number of records to generate
+        # Get record count
         while True:
             try:
-                count_input = input(
-                    "\n📈 How many person records to generate? "
-                ).strip()
-                record_count = int(count_input)
+                prompt = f"\n📈 How many {workflow_name} records to generate"
+                if default_count:
+                    prompt += f" (default: {default_count:,})"
+                prompt += "? "
+
+                count_input = input(prompt).strip()
+                record_count = int(count_input) if count_input else default_count
+
                 if record_count <= 0:
                     print("❌ Please enter a positive number")
                     continue
@@ -99,170 +241,171 @@ class EarthCLI:
             except ValueError:
                 print("❌ Please enter a valid number")
 
-        return record_count, action_choice
+        return record_count, write_mode
 
-    def generate_and_store_data(self, count: int, how: str) -> None:
-        """
-        Generate person data and store in database.
-
-        Args:
-            count: Number of records to generate
-            how: Write method ('append' or 'truncate')
-        """
-        print(f"\n🔄 Generating {count:,} person records...")
-
+    def execute_workflow(
+        self, workflow_name: str, parameters: Any, write_mode: str
+    ) -> None:
+        """Execute the selected workflow with given parameters."""
         try:
-            # Generate data in batches for better memory management
-            batch_size = min(1000, count)
-            batches = (count + batch_size - 1) // batch_size
-
-            total_generated = 0
-
-            for batch_num in range(batches):
-                current_batch_size = min(batch_size, count - total_generated)
-
-                print(
-                    f"   Batch {batch_num + 1}/{batches}: Generating {current_batch_size} records..."
-                )
-
-                # Generate batch of person profiles
-                persons = generate_multiple_persons(current_batch_size)
-
-                # Convert to DataFrame
-                df = pd.DataFrame([person.to_dict() for person in persons])
-
-                # Determine write method for this batch
-                batch_how = how if batch_num == 0 else "append"
-
-                # Store in database
-                operate_on_table(
-                    conn=self.conn,
-                    schema_name=self.schema_name,
-                    table_name=self.table_name,
-                    action="write",
-                    object_data=df,
-                    how=batch_how,
-                )
-
-                total_generated += current_batch_size
-
-                # Progress update
-                progress = (total_generated / count) * 100
-                print(f"   Progress: {progress:.1f}% ({total_generated:,}/{count:,})")
-
-            # Final status
-            final_info = get_table_info(self.conn, self.schema_name, self.table_name)
-
-            print(f"\n✅ Generation complete!")
-            print(f"   • Total records in database: {final_info['row_count']:,}")
-            print(f"   • Records added this session: {count:,}")
-            print(f"   • Database file: earth.duckdb")
-
-            # Show sample of generated data
-            sample_df = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT person_id, full_name, age, city, job_title FROM {self.schema_name}.{self.table_name} ORDER BY created_at DESC LIMIT 5",
+            # Create workflow configuration
+            config = WorkflowConfig(
+                batch_size=1000,
+                max_records=1000000,
+                seed=42,  # For reproducible results
+                write_mode=write_mode,
             )
 
-            print(f"\n📋 Sample of generated data:")
-            print(sample_df.to_string(index=False))
-
-        except Exception as e:
-            log(f"Error during data generation: {e}", "error")
-            print(f"❌ Error during generation: {e}")
-            sys.exit(1)
-
-    def display_database_stats(self) -> None:
-        """Display comprehensive database statistics."""
-        try:
-            # Basic table info
-            table_info = get_table_info(self.conn, self.schema_name, self.table_name)
-
-            if not table_info["exists"]:
-                print("\n📊 Database is empty - no person records found")
-                return
-
-            print(f"\n📊 Database Statistics:")
-            print(f"   • Total persons: {table_info['row_count']:,}")
-
-            # Age distribution
-            age_stats = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT MIN(age) as min_age, MAX(age) as max_age, AVG(age) as avg_age FROM {self.schema_name}.{self.table_name}",
-            )
-
-            if not age_stats.empty:
-                print(
-                    f"   • Age range: {int(age_stats['min_age'].iloc[0])} - {int(age_stats['max_age'].iloc[0])} years"
+            # Create and execute workflow
+            if workflow_name == "full_dataset":
+                dataset_spec = parameters
+                workflow = create_workflow_from_name(
+                    workflow_name, config, self.db_config, dataset_spec=dataset_spec
                 )
-                print(f"   • Average age: {age_stats['avg_age'].iloc[0]:.1f} years")
 
-            # Gender distribution
-            gender_dist = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT gender, COUNT(*) as count FROM {self.schema_name}.{self.table_name} GROUP BY gender ORDER BY count DESC",
-            )
+                print(f"\n🚀 Starting full dataset generation...")
+                print(f"   • People: {dataset_spec.people_count:,}")
+                print(f"   • Companies: {dataset_spec.companies_count:,}")
 
-            if not gender_dist.empty:
-                print(f"   • Gender distribution:")
-                for _, row in gender_dist.iterrows():
-                    percentage = (row["count"] / table_info["row_count"]) * 100
-                    print(
-                        f"     - {row['gender']}: {row['count']:,} ({percentage:.1f}%)"
+                result = workflow.execute()
+
+                if result.success:
+                    summary = workflow.get_execution_summary()
+                    self._display_full_dataset_results(summary)
+                else:
+                    print(f"❌ Full dataset generation failed: {result.error_message}")
+
+            else:
+                record_count = parameters
+                workflow = create_workflow_from_name(
+                    workflow_name, config, self.db_config
+                )
+
+                action_text = (
+                    "appending to existing data"
+                    if write_mode == "append"
+                    else "replacing existing data"
+                )
+                print(f"\n🚀 Starting {workflow_name} generation...")
+                print(f"   • Records: {record_count:,}")
+                print(f"   • Mode: {action_text}")
+
+                result = workflow.execute(record_count)
+
+                if result.success:
+                    self._display_single_workflow_results(
+                        workflow_name, result, workflow
                     )
-
-            # Top cities
-            top_cities = operate_on_table(
-                conn=self.conn,
-                schema_name=self.schema_name,
-                table_name=self.table_name,
-                action="read",
-                query=f"SELECT city, state, COUNT(*) as count FROM {self.schema_name}.{self.table_name} GROUP BY city, state ORDER BY count DESC LIMIT 5",
-            )
-
-            if not top_cities.empty:
-                print(f"   • Top cities:")
-                for _, row in top_cities.iterrows():
+                else:
                     print(
-                        f"     - {row['city']}, {row['state']}: {row['count']} persons"
+                        f"❌ {workflow_name} generation failed: {result.error_message}"
                     )
 
         except Exception as e:
-            log(f"Error displaying stats: {e}", "error")
-            print(f"❌ Error retrieving statistics: {e}")
+            log(f"Error executing workflow: {e}", "error")
+            print(f"❌ Workflow execution error: {e}")
+
+    def _display_single_workflow_results(
+        self, workflow_name: str, result, workflow
+    ) -> None:
+        """Display results for single workflow execution."""
+        print(f"\n✅ {workflow_name.title()} generation complete!")
+        print(f"   • Records generated: {result.records_generated:,}")
+        print(f"   • Records stored: {result.records_stored:,}")
+        print(f"   • Execution time: {result.execution_time:.1f} seconds")
+
+        if result.execution_time > 0:
+            print(
+                f"   • Rate: {result.records_generated/result.execution_time:.0f} records/second"
+            )
+
+        # Show basic statistics if available
+        try:
+            # Reconnect for statistics (workflow may have closed connection)
+            if hasattr(workflow, "setup_database"):
+                workflow.setup_database()
+                final_stats = workflow.get_current_status()
+                if final_stats and final_stats.get("row_count"):
+                    print(
+                        f"   • Final table size: {final_stats['row_count']:,} records"
+                    )
+        except Exception as e:
+            log(f"Error getting final statistics: {e}", "warning")
+
+    def _display_full_dataset_results(self, summary: Dict[str, Any]) -> None:
+        """Display results for full dataset generation."""
+        print(f"\n✅ Full dataset generation complete!")
+
+        execution_summary = summary.get("execution_summary", {})
+        performance_metrics = summary.get("performance_metrics", {})
+
+        print(
+            f"   • Total records: {execution_summary.get('total_records_generated', 0):,}"
+        )
+        print(
+            f"   • Total time: {execution_summary.get('overall_duration', 0):.1f} seconds"
+        )
+
+        avg_rate = performance_metrics.get("average_records_per_second", 0)
+        if avg_rate > 0:
+            print(f"   • Average rate: {avg_rate:.0f} records/second")
+
+        # Show workflow breakdown
+        workflow_steps = summary.get("workflow_steps", [])
+        if workflow_steps:
+            print(f"\n📊 Workflow breakdown:")
+            for step in workflow_steps:
+                status_icon = "✅" if step.get("status") == "completed" else "❌"
+                workflow_name = step.get("workflow_name", "unknown")
+                records = step.get("records_generated", 0)
+                duration = step.get("duration", 0)
+                print(
+                    f"   {status_icon} {workflow_name.title()}: {records:,} records in {duration:.1f}s"
+                )
 
     def run(self) -> None:
-        """Main application runner."""
+        """Main application runner with enhanced workflow support."""
         print("Initializing Earth Data Generator...")
 
         # Initialize database
         self.initialize_database()
 
-        # Get user preferences
-        count, how = self.get_user_input()
+        # Display welcome and workflow options
+        self.display_welcome()
 
-        # Confirm generation
-        action_text = (
-            "append to existing data" if how == "append" else "replace existing data"
-        )
-        print(f"\n🚀 Ready to generate {count:,} records and {action_text}")
+        # Get user's workflow choice
+        workflow_name = self.get_workflow_choice()
+
+        # Get workflow-specific parameters
+        parameters, write_mode = self.get_workflow_parameters(workflow_name)
+
+        if parameters is None:  # User cancelled
+            print("❌ Operation cancelled by user")
+            return
+
+        # Confirm execution
+        if workflow_name == "full_dataset":
+            dataset_spec = parameters
+            print(f"\n🚀 Ready to generate full dataset:")
+            print(f"   • People: {dataset_spec.people_count:,}")
+            print(f"   • Companies: {dataset_spec.companies_count:,}")
+            print(f"   • Mode: {write_mode}")
+        else:
+            record_count = parameters
+            action_text = (
+                "append to existing data"
+                if write_mode == "append"
+                else "replace existing data"
+            )
+            print(
+                f"\n🚀 Ready to generate {record_count:,} {workflow_name} records and {action_text}"
+            )
+
         confirm = input("Continue? (Y/n): ").strip().lower()
 
         if confirm in ["", "y", "yes"]:
-            # Generate and store data
-            self.generate_and_store_data(count, how)
-
-            # Display final statistics
-            self.display_database_stats()
+            # Execute the workflow
+            self.execute_workflow(workflow_name, parameters, write_mode)
 
             print(f"\n🎉 Earth data generation complete!")
             print(f"   Database location: {os.path.abspath('earth.duckdb')}")

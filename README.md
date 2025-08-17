@@ -18,26 +18,106 @@ Earth enables downstream analytics and machine learning by generating realistic,
 
 ## Architecture
 
-```
+```bash
 earth/
-├── app/                    # Application entry points
-│   └── main.py            # Primary orchestrator
-├── src/                   # Installable package
-│   ├── __init__.py
-│   ├── pyproject.toml     # Package configuration
-│   ├── loader.py          # DuckDB interface & CRUD operations
-│   └── generators/        # Data generation modules
-│       ├── __init__.py
-│       ├── person.py      # Person profile generator
-│       └── career.py      # Career simulator
-├── logs/                  # Application logs
-│   └── loader/            # Loader-specific logs
-├── test/
-│   └── unit_test.py
-├── setup.sh
+├── README.md
+├── CHANGELOG.md
+├── LICENSE
+├── pyproject.toml                   # Build
+├── .gitignore
 ├── Makefile
 ├── requirements.txt
-└── README.md
+├── setup.sh                         # Installation shell script
+│
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml
+│   │   ├── release-please.yml
+│   │   └── test-publish.yml
+│   └── release-please-config.json
+│
+├── app/                             # Application layer
+│   ├── __init__.py
+│   ├── main.py                      # ← Primary orchestrator
+│   └── workflows/                   # Application-specific workflows
+│       ├── __init__.py
+│       ├── base.py                  # Base classes and patterns for scalable workflow management
+│       ├── config.py                # Workflow config metadata e.g. available workflows, templates
+│       ├── base.py                  # Abstract base workflow generation class
+│       ├── dataset_orchestrator.py  # Coordinate workflow executions
+│       └── unified_workflow.py      # Unified workflow using base generator
+│
+├── src/                             # Package source for PyPI
+│   └── earth/                       # The installable package
+│       ├── __init__.py              # Package entry point
+│       ├── core/                    # Core functionality
+│       │   ├── __init__.py
+│       │   ├── loader.py            # DuckDB interface & CRUD
+│       │   ├── utils.py             # Utilities and constants
+│       │   └── database.py          # Database schema management
+│       ├── generators/              # Data generators
+│       │   ├── __init__.py
+│       │   ├── base.py              # Base generator class
+│       │   ├── factory.py           # Factory class for creating generators
+│       │   ├── person.py            # Person generator
+│       │   ├── company.py           # Company generator
+│       │   └── career.py            # Career generator
+│       └── modules/                 # Optional modules [TBD]
+│           ├── __init__.py
+│           ├── companies/
+│           │   ├── __init__.py
+│           │   ├── generator.py
+│           │   ├── industries.py
+│           │   └── schemas.py
+│           ├── campaigns/
+│           │   ├── __init__.py
+│           │   ├── generator.py
+│           │   ├── products.py
+│           │   ├── brands.py
+│           │   └── schemas.py
+│           └── automotive/
+│               ├── __init__.py
+│               ├── generator.py
+│               ├── vehicles.py
+│               └── schemas.py
+│
+├── logs/                            # Application logs
+│   └── loader/                      # Loader-specific logs
+│
+├── tests/                           # Test suite
+│   ├── __init__.py
+│   ├── test_core/
+│   │   ├── test_loader.py
+│   │   └── test_utils.py
+│   ├── test_generators/
+│   │   ├── test_person.py
+│   │   └── test_career.py
+│   ├── test_modules/
+│   │   ├── test_companies/
+│   │   ├── test_campaigns/
+│   │   └── test_automotive/
+│   └── test_app/                    # Test the application layer
+│       ├── test_main.py
+│       └── test_workflows.py
+│
+├── docs/                            # Documentation
+│   ├── index.md
+│   ├── installation.md
+│   ├── application-usage.md         # How to use app/main.py
+│   ├── package-usage.md             # How to use as pip package
+│   ├── modules/
+│   └── examples/
+│       ├── generate_150k_people.py
+│       ├── package_usage.py
+│       └── application_usage.py
+│
+└── data/                           # Optional: Sample data or schemas
+    ├── schemas/
+    │   ├── person.sql
+    │   ├── companies.sql
+    │   └── campaigns.sql
+    └── samples/
+        └── sample_output.parquet
 ```
 
 ## How to Use Locally
@@ -47,7 +127,7 @@ earth/
 - Python 3.9+
 - pip or poetry
 
-### Installation
+### Installation [WIP]
 
 ```bash
 # Clone repository
@@ -72,7 +152,7 @@ python app/main.py
 # - Choose append vs. overwrite existing data
 ```
 
-### Database Schema
+### Database Schema [WIP]
 
 The `earth.duckdb` database will be created automatically with the following structure:
 
@@ -92,10 +172,10 @@ The `earth.duckdb` database will be created automatically with the following str
 
 ### Stage 1: Foundation ✅
 
-- [ ] Core database architecture with DuckDB
-- [ ] Person profile generation with Faker
-- [ ] CRUD operations and logging infrastructure
-- [ ] Interactive CLI for data generation
+- [✅] Core database architecture with DuckDB
+- [✅] Person profile generation with Faker
+- [✅] CRUD operations and logging infrastructure
+- [✅] Interactive CLI for data generation
 
 ### Stage 2: Enhanced Entities 🚧
 
