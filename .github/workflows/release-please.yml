@@ -1,3 +1,4 @@
+# .github/workflows/release-please.yml
 name: Release Please
 
 on:
@@ -5,37 +6,49 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   release-please:
+    name: Create Release PR
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      pr_number: ${{ steps.release.outputs.pr_number }}
     steps:
-      - uses: google-github-actions/release-please-action@v3
+      - name: Run Release Please
+        uses: google-github-actions/release-please-action@v4
         id: release
         with:
-          release-type: python
-          package-name: earth
-          changelog-path: CHANGELOG.md
-          version-file: src/earth/__init__.py
-          include-v-in-tag: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please-config.json
+          manifest-file: .github/release-please-manifest.json
 
-  publish-to-pypi:
-    needs: release-please
+      - name: Show release outputs
+        if: steps.release.outputs.release_created
+        run: |
+          echo "Release created: ${{ steps.release.outputs.release_created }}"
+          echo "Tag: ${{ steps.release.outputs.tag_name }}"
+          echo "Version: ${{ steps.release.outputs.version }}"
+
+  # BUILD JOB - Always run to validate package builds
+  build:
+    name: Build Package
     runs-on: ubuntu-latest
-    if: ${{ needs.release-please.outputs.release_created }}
-    environment: release
-    permissions:
-      id-token: write # For trusted publishing
+    needs: release-please
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
 
       - name: Install build dependencies
         run: |
@@ -45,10 +58,116 @@ jobs:
       - name: Build package
         run: python -m build
 
-      - name: Check package
+      - name: Check package integrity
         run: twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-files
+          path: dist/
+          retention-days: 30
+
+      - name: Display package info
+        run: |
+          echo "📦 Built packages:"
+          ls -la dist/
+          echo ""
+          echo "📋 Package metadata:"
+          python -m twine check dist/* --strict
+
+  # TEST PYPI PUBLISH - Only when release is created (DISABLED)
+  publish-test-pypi:
+    name: Publish to Test PyPI
+    runs-on: ubuntu-latest
+    needs: [release-please, build]
+    if: false # DISABLED - Change to 'needs.release-please.outputs.release_created' to enable
+    environment:
+      name: test-pypi
+      url: https://test.pypi.org/p/earth
+    permissions:
+      id-token: write # For trusted publishing
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: dist/
+
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          # Uses OIDC trusted publishing - no manual token needed
+          # Configure at: https://test.pypi.org/manage/account/publishing/
+
+  # PRODUCTION PYPI PUBLISH - Only when release is created (DISABLED)
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [release-please, build, publish-test-pypi]
+    if: false # DISABLED - Change to 'needs.release-please.outputs.release_created' to enable
+    environment:
+      name: pypi
+      url: https://pypi.org/p/earth
+    permissions:
+      id-token: write # For trusted publishing
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: dist/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        # Uses OIDC trusted publishing - no manual token needed
+        # Configure at: https://pypi.org/manage/account/publishing/
+
+  # POST-RELEASE VALIDATION
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    needs: [release-please, build]
+    if: needs.release-please.outputs.release_created
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }} # [TODO]
+          python-version: "3.11"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+          path: dist/
+
+      - name: Test local installation
+        run: |
+          pip install dist/*.whl
+          python -c "
+          import earth
+          print(f'Successfully installed Earth v{earth.__version__}')
+
+          # Test basic functionality
+          from earth.generators.person import generate_person
+          person = generate_person()
+          print(f'Generated test person: {person.first_name} {person.last_name}')
+          "
+
+      - name: Create release summary
+        run: |
+          echo "## 🎉 Release ${{ needs.release-please.outputs.version }} Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Package Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.release-please.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ needs.release-please.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build**: ✅ Successful" >> $GITHUB_STEP_SUMMARY
+          echo "- **PyPI**: ⏸️ Disabled (ready for manual activation)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the release notes" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test the package locally" >> $GITHUB_STEP_SUMMARY
+          echo "3. When ready, enable PyPI publishing in workflows" >> $GITHUB_STEP_SUMMARY

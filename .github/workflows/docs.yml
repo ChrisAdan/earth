@@ -1,0 +1,57 @@
+# .github/workflows/docs.yml
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-docs:
+    name: Check Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check README exists
+        run: |
+          if [ ! -f README.md ]; then
+            echo "❌ README.md not found"
+            exit 1
+          fi
+          echo "✅ README.md exists"
+
+      - name: Check CHANGELOG exists
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "❌ CHANGELOG.md not found"
+            exit 1
+          fi
+          echo "✅ CHANGELOG.md exists"
+
+      - name: Validate package metadata
+        run: |
+          python -c "
+          import tomllib
+          with open('pyproject.toml', 'rb') as f:
+              data = tomllib.load(f)
+
+          project = data['project']
+          required_fields = ['name', 'version', 'description', 'authors']
+
+          for field in required_fields:
+              if field not in project:
+                  raise ValueError(f'Missing required field: {field}')
+                  
+          print('✅ Package metadata is valid')
+          print(f'Name: {project[\"name\"]}')
+          print(f'Version: {project[\"version\"]}')
+          print(f'Description: {project[\"description\"]}')
+          "
+
+      - name: Check docstrings
+        run: |
+          python -m pip install pydocstyle
+          pydocstyle src/earth --convention=google --add-ignore=D100,D104 || true

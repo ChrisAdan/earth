@@ -1,21 +1,30 @@
-name: Test PyPI Publish
+# .github/workflows/test-publish.yml
+name: Test Package Build
 
 on:
   push:
     branches: [dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
+  workflow_dispatch:
 
 jobs:
   test-build:
+    name: Test Build and Install
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+          cache: pip
 
       - name: Install build dependencies
         run: |
@@ -25,17 +34,109 @@ jobs:
       - name: Build package
         run: python -m build
 
-      - name: Check package
-        run: twine check dist/*
+      - name: Check package integrity
+        run: twine check dist/* --strict
 
-      - name: Test install
+      - name: Test wheel installation
         run: |
           pip install dist/*.whl
-          python -c "import earth; print(f'Earth version: {earth.__version__}')"
+          python -c "
+          import earth
+          print(f'Earth version: {earth.__version__}')
 
-      - name: Test modular installs
+          # Test core functionality
+          from earth.generators.person import generate_person
+          person = generate_person()
+          print(f'Generated person: {person.first_name} {person.last_name}')
+          "
+
+      - name: Test source distribution
         run: |
-          pip install "dist/*.whl[companies]"
-          pip install "dist/*.whl[campaigns]" 
-          pip install "dist/*.whl[automotive]"
-          pip install "dist/*.whl[all]"
+          # Clean install from source
+          pip uninstall -y earth
+          pip install dist/*.tar.gz
+          python -c "
+          import earth
+          print(f'Earth from source: {earth.__version__}')
+          "
+
+  test-optional-dependencies:
+    name: Test Optional Dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        extras: [companies, campaigns, automotive, all]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Build package
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Test installation with ${{ matrix.extras }} extras
+        run: |
+          pip install "dist/*.whl[${{ matrix.extras }}]"
+          python -c "
+          import earth
+          print(f'Earth with [${{ matrix.extras }}]: {earth.__version__}')
+
+          # Test that optional dependencies are available
+          try:
+            import requests
+            print('✅ requests available')
+          except ImportError:
+            print('❌ requests not available')
+            
+          try:
+            import bs4
+            print('✅ beautifulsoup4 available')
+          except ImportError:
+            print('❌ beautifulsoup4 not available')
+          "
+
+  test-import-structure:
+    name: Test Import Structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all]"
+
+      - name: Test all imports
+        run: |
+          python -c "
+          # Test core earth package
+          import earth
+          from earth.core.loader import DatabaseConfig
+          from earth.generators.person import PersonGenerator
+          from earth.generators.company import CompanyGenerator
+
+          # Test app package
+          import app
+          from app import EarthCLI, main
+          from app.workflows import BaseWorkflow, WorkflowConfig
+
+          # Test module structure
+          from earth.modules.companies import CompaniesModule
+
+          print('✅ All critical imports successful')
+          print(f'Earth version: {earth.__version__}')
+          "
