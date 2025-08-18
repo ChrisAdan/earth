@@ -5,7 +5,7 @@ Provides a consistent interface and common functionality for all entity generato
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional, TypeVar, Generic, cast
+from typing import Dict, Any, List, Optional, TypeVar, Generic, cast, Union
 from dataclasses import dataclass
 import random
 from faker import Faker
@@ -50,6 +50,10 @@ class BaseGenerator(ABC, Generic[T]):
         if self.config.seed is not None:
             Faker.seed(self.config.seed)
             random.seed(self.config.seed)
+
+    @property
+    def seed(self) -> Union[int, None]:
+        return self.config.seed
 
     @property
     @abstractmethod

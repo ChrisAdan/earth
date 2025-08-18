@@ -22,7 +22,11 @@ def operate_on_table(
     ] = None,
     query: Optional[str] = None,
     how: str = "append",
-) -> Union[bool, pd.DataFrame, None]:
+) -> Union[
+    bool,
+    pd.DataFrame,
+    None,
+]:
     """
     Control database table operations based on action parameter.
 
@@ -30,7 +34,7 @@ def operate_on_table(
         conn: DuckDB connection object
         schema_name: Schema name
         table_name: Table name
-        action: Action to perform ('ping', 'read', 'write', 'clear')
+        action: Action to perform ('ping', 'read', 'write', 'clear', 'drop')
         object_data: Data object for write operations
         query: SQL query string for read operations
         how: Write method ('append' or 'truncate')
@@ -38,7 +42,7 @@ def operate_on_table(
     Returns:
         - bool for 'ping' action
         - pd.DataFrame for 'read' action
-        - None for 'write' and 'clear' actions
+        - None for 'write' and 'clear' or 'drop' actions
     """
     full_table_name = f"{schema_name}.{table_name}"
 
@@ -112,8 +116,16 @@ def operate_on_table(
             else:
                 log(f"Table {full_table_name} does not exist, nothing to clear")
             return None
+        elif action == "drop":
+            try:
+                conn.execute(f"DROP TABLE {full_table_name}")
+                log(f"Dropped {full_table_name}")
+            except Exception as e:
+                print(f"Failed to drop {full_table_name}: {str(e)}")
+                return None
         else:
             raise ValueError(f"Unknown action: {action}")
+        return None
 
     except Exception as e:
         log(f"Error in operate_on_table: {str(e)}", "error")
@@ -216,6 +228,7 @@ def _create_table_with_explicit_schema(
     """
     Create table with explicit column types to prevent DuckDB type inference issues.
     """
+    _ensure_schema_exists(conn, full_table_name.split(".")[0])
     # Build CREATE TABLE statement with explicit column types
     column_definitions = []
 
@@ -339,10 +352,14 @@ class DatabaseConfig:
     schema_name: str = "raw"
 
     @property
+    def db_filename(self) -> Path:
+        """Generate the database filename based on environment"""
+        return Path(f"earth_{self.env}")
+
+    @property
     def db_path(self) -> Path:
         """Generate database path based on environment."""
-        db_filename = f"earth_{self.env}.duckdb"
-        return self.data_dir / self.env / db_filename
+        return self.data_dir / self.env / f"{self.db_filename}.duckdb"
 
     def __post_init__(self) -> None:
         """Ensure the directory exists."""
@@ -368,6 +385,14 @@ class DatabaseConfig:
         return f"DatabaseConfig(env={self.env}, db_path={self.db_path}, schema={self.schema_name})"
 
 
+def _ensure_schema_exists(conn: duckdb.DuckDBPyConnection, schema_name: str) -> None:
+    """Check for existing schema and create if not"""
+    try:
+        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+    except Exception as e:
+        log(f"Failed to create schema {schema_name}: {str(e)}", "error")
+
+
 def connect_to_duckdb(
     config: Optional[DatabaseConfig] = None,
 ) -> duckdb.DuckDBPyConnection:
@@ -388,7 +413,7 @@ def connect_to_duckdb(
         conn = duckdb.connect(str(config.db_path))  # Convert Path to string
 
         # Create schema if it doesn't exist
-        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {config.schema_name}")
+        _ensure_schema_exists(conn, config.schema_name)
         log(f"Ensured schema '{config.schema_name}' exists")
 
         return conn

@@ -1,12 +1,29 @@
 from dataclasses import dataclass, asdict
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, cast
 from datetime import datetime, date, timezone
 from enum import IntEnum, Enum
+import uuid
+import random
 
-MIN_AGE = 18
-MAX_AGE = 85
-MIN_RATIO_PEOPLE_TO_COMPANIES = 1.0
-MAX_RATIO_PEOPLE_TO_COMPANIES = 100.0
+DEFAULT_RANDOM_STATE: int = 8172025
+MIN_AGE: int = 18
+MAX_AGE: int = 85
+MIN_RATIO_PEOPLE_TO_COMPANIES: float = 1.0
+MAX_RATIO_PEOPLE_TO_COMPANIES: float = 100.0
+COUNTER: int = 0
+
+
+def get_reproducible_uuid(
+    seed: Optional[int] = DEFAULT_RANDOM_STATE,
+) -> str:
+    global COUNTER
+    seeded_random_generator = random.Random()
+    seeded_random_generator.seed(cast(int, seed) + COUNTER)
+    COUNTER += 1
+    reproducible_uuid_int = seeded_random_generator.getrandbits(128)
+    seeded_uuid = uuid.UUID(int=reproducible_uuid_int)
+    return seeded_uuid.hex
+
 
 # Common US job titles by category
 US_JOB_TITLES = [

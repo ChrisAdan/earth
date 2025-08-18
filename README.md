@@ -86,17 +86,18 @@ earth/
 │
 ├── tests/                           # Test suite
 │   ├── __init__.py
-│   ├── test_core/
+│   ├── core/
 │   │   ├── test_loader.py
 │   │   └── test_utils.py
-│   ├── test_generators/
+│   ├── generators/
 │   │   ├── test_person.py
+│   │   ├── test_company.py
 │   │   └── test_career.py
-│   ├── test_modules/
+│   ├── modules/
 │   │   ├── test_companies/
 │   │   ├── test_campaigns/
 │   │   └── test_automotive/
-│   └── test_app/                    # Test the application layer
+│   └── app/                    # Test the application layer
 │       ├── test_main.py
 │       └── test_workflows.py
 │

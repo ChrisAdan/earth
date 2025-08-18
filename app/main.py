@@ -179,6 +179,7 @@ class EarthCLI:
         dataset_spec = DatasetSpec(
             people_count=people_count, companies_count=companies_count
         )
+        print(f'added {people_count} people and {companies_count} companies')
 
         return dataset_spec, write_mode
 

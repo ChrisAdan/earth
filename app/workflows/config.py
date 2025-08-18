@@ -22,25 +22,15 @@ AVAILABLE_WORKFLOWS = {
 DATASET_TEMPLATES = {
     "small_demo": {
         "description": "Small dataset for demos and testing",
-        "workflows": {
-            "people":50,
-            "companies":10
-        },
+        "workflows": {"people": 50, "companies": 10},
     },
     "medium_dev": {
         "description": "Medium dataset for development work",
-        "workflows": {
-            "people":50,
-            "companies":10
-        }
+        "workflows": {"people": 50, "companies": 10},
     },
     "large_production": {
         "description": "Large dataset for production-like scenarios",
-
-        "workflows": {
-            "people":50,
-            "companies":10
-        }    
+        "workflows": {"people": 50, "companies": 10},
     },
 }
 

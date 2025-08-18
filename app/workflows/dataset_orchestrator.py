@@ -89,6 +89,8 @@ class WorkflowStep:
 class DatasetSpec:
     """Specification for dataset generation with dependency management."""
 
+    people_count: Optional[int] = None
+    companies_count: Optional[int] = None
     workflows: Dict[str, int] = field(default_factory=dict)
     dependencies: Dict[str, List[str]] = field(default_factory=dict)
     parallel_groups: List[List[str]] = field(default_factory=list)
@@ -97,6 +99,7 @@ class DatasetSpec:
     # Validation rules
     min_ratio_people_to_companies: float = MIN_RATIO_PEOPLE_TO_COMPANIES
     max_ratio_people_to_companies: float = MAX_RATIO_PEOPLE_TO_COMPANIES
+
 
     def validate(self) -> None:
         """Validate dataset specification."""
@@ -108,7 +111,9 @@ class DatasetSpec:
                 raise ValueError(f"Record count must be positive for {workflow_name}")
             supported_workflows = AVAILABLE_WORKFLOWS.keys()
             if workflow_name not in supported_workflows:
-                raise ValueError(f"Received unexpected workflow {workflow_name}. Available workflows: {supported_workflows}")
+                raise ValueError(
+                    f"Received unexpected workflow {workflow_name}. Available workflows: {supported_workflows}"
+                )
 
         # Validate dependencies reference actual workflows
         for workflow_name, deps in self.dependencies.items():

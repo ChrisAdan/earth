@@ -84,11 +84,12 @@ __all__ = [
     "print_system_summary",
     "AVAILABLE_WORKFLOWS",
     "WORKFLOW_CONFIGS",
-    "DATASET_TEMPLATES"
+    "DATASET_TEMPLATES",
 ]
 
 # Version info
 __version__ = "0.3.0"
+
 
 def get_workflow_info(workflow_name: str) -> dict:
     """
@@ -194,7 +195,7 @@ def create_dataset_workflow(
 
         template = DATASET_TEMPLATES[template_name]
         custom_spec = DatasetSpec(
-            workflows = template["workflows"],
+            workflows=template["workflows"],
         )
 
     return DatasetWorkflow(config, db_config, custom_spec, **kwargs)

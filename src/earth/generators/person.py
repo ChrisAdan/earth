@@ -21,7 +21,9 @@ from earth.core.utils import (
     EMPLOYMENT_STATUSES,
     EDUCATION_LEVELS,
     MARITAL_STATUSES,
+    COUNTER,
     PersonProfile,
+    get_reproducible_uuid,
 )
 from earth.generators.career import generate_career_profile
 
@@ -293,10 +295,9 @@ class PersonGenerator(BaseGenerator[PersonProfile]):
         height_cm = random.randint(150, 200)
         weight_kg = random.randint(50, 120)
         marital_status = random.choice(self.marital_statuses)
-
         # Create PersonProfile with sanitized data and career information
         profile = PersonProfile(
-            person_id=str(uuid.uuid4()),
+            person_id=get_reproducible_uuid(super().seed),
             first_name=name_data["first_name"],
             last_name=name_data["last_name"],
             full_name=name_data["full_name"],

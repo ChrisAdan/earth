@@ -230,7 +230,7 @@ def test_validation_system():
         )
 
         errors = validate_dataset_spec(invalid_workflow_spec)
-        print(f'Errors:\n{errors}')
+        print(f"Errors:\n{errors}")
         assert len(errors) > 0, "Should have errors for unknown workflow"
         assert any(
             "nonexistent" in error for error in errors

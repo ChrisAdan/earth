@@ -20,6 +20,7 @@ from earth.core.utils import (
     CREDIT_RATINGS,
     GROWTH_STAGES,
     LEGAL_SUFFIXES,
+    get_reproducible_uuid,
 )
 
 
@@ -370,7 +371,7 @@ class CompanyGenerator(BaseGenerator[CompanyProfile]):
         sector = sector_mapping.get(industry, "Miscellaneous")
 
         return CompanyProfile(
-            company_id=str(uuid.uuid4()),
+            company_id=get_reproducible_uuid(super().seed),
             company_name=company_name,
             legal_name=legal_name,
             industry=industry,
