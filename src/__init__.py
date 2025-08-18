@@ -2,7 +2,6 @@
 Earth: Synthetic data generation platform for analytics engineering.
 """
 
-__version__ = "0.1.0"
 __author__ = "Chris Adan"
 
 from earth.core.loader import connect_to_duckdb, operate_on_table, log

@@ -87,10 +87,6 @@ __all__ = [
     "DATASET_TEMPLATES",
 ]
 
-# Version info
-__version__ = "0.3.0"
-
-
 def get_workflow_info(workflow_name: str) -> dict:
     """
     Get information about a specific workflow.

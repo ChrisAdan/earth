@@ -86,7 +86,6 @@ __all__ = [
 ]
 
 # Application metadata
-__version__ = "0.3.0"
 __title__ = "Earth Data Generator Application"
 __description__ = "Interactive CLI and workflow system for generating synthetic data"
 

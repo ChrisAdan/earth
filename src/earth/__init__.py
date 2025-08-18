@@ -32,7 +32,7 @@ Usage Examples:
 
 from typing import Optional, List, Dict, Any, TypedDict
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Chris Adan"
 __description__ = "Realistic synthetic data generation for testing and development"
 

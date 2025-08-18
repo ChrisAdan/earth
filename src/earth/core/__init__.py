@@ -61,9 +61,7 @@ from .utils import (
     GROWTH_STAGES,
 )
 
-# Version info
-__version__ = "0.1.0"
-__author__ = "Earth Generator Team"
+__author__ = "Chris Adan"
 
 # Public API - what gets imported with "from earth.core import *"
 __all__ = [

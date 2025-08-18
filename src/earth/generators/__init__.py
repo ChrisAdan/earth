@@ -1,5 +1,5 @@
 """
-Data generators for synthetic entities.
+Earth Generators Module.
 
 This package provides a unified system for generating realistic synthetic data
 for various entity types using a consistent BaseGenerator interface.
@@ -70,9 +70,6 @@ __all__ = [
     "select_industry",
     "calculate_salary",
 ]
-
-# Version info
-__version__ = "0.2.0"
 
 # Quick access to entity information
 AVAILABLE_ENTITIES = {
