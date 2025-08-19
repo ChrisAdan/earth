@@ -25,6 +25,8 @@ Usage:
     person = PersonProfile(...)
 """
 
+from .. import __version__
+
 # Core database functionality
 from .loader import (
     DatabaseConfig,

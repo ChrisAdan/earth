@@ -41,6 +41,7 @@ from .dataset_orchestrator import (
     DatasetWorkflow,
 )
 
+from earth import __version__
 # Generator system imports
 from earth.generators.base import (
     BaseGenerator,

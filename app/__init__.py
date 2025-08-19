@@ -10,7 +10,7 @@ The application is built on top of the core Earth package and provides:
 - Dataset orchestration with dependency management
 - Comprehensive progress tracking and statistics
 """
-
+from earth import __version__
 from typing import Dict, Any, List, Optional
 
 # Import workflow system

@@ -31,6 +31,7 @@ Usage:
 
 import sys
 from pathlib import Path
+from earth import __version__
 
 # Ensure project paths are available
 project_root = Path(__file__).parent.parent
