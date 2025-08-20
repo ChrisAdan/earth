@@ -4,5 +4,5 @@
 __pycache__
 *.duckdb
 logs/
-!logs/test/reports/latest/
+!logs/test/reports/latest/latest.*
 .mypy*
