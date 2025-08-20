@@ -119,7 +119,7 @@ test-check:
 # Generate detailed test report
 test-report:
 	@echo "📄 Generating Test Report..."
-	@python $(SCRIPTS_DIR)/test/report.py
+	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py
 
 # ============================================================================
 # LEGACY TESTING (for backward compatibility)
@@ -210,7 +210,7 @@ lint:
 	@echo "🔍 Running code formatting and type checking..."
 	@command -v black >/dev/null 2>&1 || { echo "Installing black..."; pip install black; }
 	@command -v mypy >/dev/null 2>&1 || { echo "Installing mypy..."; pip install mypy; }
-	@black src/ app/ tests/ --line-length 88
+	@black src/ app/ tests/ scripts/ --line-length 88
 	@mypy src/ --ignore-missing-imports
 	@echo "✅ Linting complete"
 
@@ -299,7 +299,66 @@ test-module:
 		echo "❌ Module tests not found: tests/modules/test_$$module_name"; \
 		echo "💡 Use 'make create-module-tests' to create test structure"; \
 	fi
+# ============================================================================
+# TEST REPORTING AND EXPORTS
+# ============================================================================
 
+# Generate detailed test report (console only)
+test-report:
+	@echo "📄 Generating Test Report..."
+	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py
+
+# Export test reports in various formats
+test-export-html:
+	@echo "📄 Exporting HTML Test Report..."
+	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py --export html
+
+test-export-json:
+	@echo "📄 Exporting JSON Test Report..."
+	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py --export json
+
+test-export-markdown:
+	@echo "📄 Exporting Markdown Test Report..."
+	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py --export markdown
+
+test-export-all:
+	@echo "📄 Exporting All Test Report Formats..."
+	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py --export all
+
+# Generate and export test report (HTML by default)
+test-report-export: test-export-html
+	@echo "✅ Test report exported to logs/test/reports/"
+
+# Show latest test reports
+test-reports-latest:
+	@echo "📁 Latest test reports:"
+	@ls -la logs/test/reports/latest/ 2>/dev/null || echo "No reports found. Run 'make test-export-all' first."
+
+# Open latest HTML report in browser (macOS/Linux)
+test-report-open:
+	@if [ -f "logs/test/reports/latest/latest.html" ]; then \
+		echo "🌐 Opening latest test report in browser..."; \
+		if command -v xdg-open >/dev/null 2>&1; then \
+			xdg-open logs/test/reports/latest/latest.html; \
+		elif command -v open >/dev/null 2>&1; then \
+			open logs/test/reports/latest/latest.html; \
+		else \
+			echo "📄 Report available at: $(PWD)/logs/test/reports/latest/latest.html"; \
+		fi; \
+	else \
+		echo "❌ No HTML report found. Run 'make test-export-html' first."; \
+	fi
+
+# Clean test reports
+clean-test-reports:
+	@echo "🧹 Cleaning test reports..."
+	@rm -rf logs/test/reports/
+	@echo "✅ Test reports cleaned"
+
+# Full test cycle with HTML export
+test-full-report: test-all test-export-html
+	@echo "🎉 Complete test cycle with report export finished"
+	
 # ============================================================================
 # HELP AND DOCUMENTATION
 # ============================================================================
