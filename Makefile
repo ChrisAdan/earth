@@ -151,17 +151,26 @@ workflows:
 # Generate sample people data (100 records)
 sample-people:
 	@echo "👥 Generating sample people dataset (100 records)..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, PeopleWorkflow; from loader import DatabaseConfig; config = WorkflowConfig(batch_size=50, seed=42, write_mode='truncate'); workflow = PeopleWorkflow(config, DatabaseConfig.for_dev()); result = workflow.execute(100); print(f'✅ Generated {result.records_generated} person records in {result.execution_time:.1f}s')"
+	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, PeopleWorkflow; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=50, seed=42, write_mode='truncate'); workflow = PeopleWorkflow(config, DatabaseConfig.for_dev()); result = workflow.execute(100); print(f'✅ Generated {result.records_generated} person records in {result.execution_time:.1f}s')"
 
 # Generate sample companies data (20 records)
 sample-companies:
 	@echo "🏢 Generating sample companies dataset (20 records)..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, CompaniesWorkflow; from loader import DatabaseConfig; config = WorkflowConfig(batch_size=10, seed=42, write_mode='truncate'); workflow = CompaniesWorkflow(config, DatabaseConfig.for_dev()); result = workflow.execute(20); print(f'✅ Generated {result.records_generated} company records in {result.execution_time:.1f}s')"
+	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, CompaniesWorkflow; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=10, seed=42, write_mode='truncate'); workflow = CompaniesWorkflow(config, DatabaseConfig.for_dev()); result = workflow.execute(20); print(f'✅ Generated {result.records_generated} company records in {result.execution_time:.1f}s')"
 
 # Generate complete mini dataset
 sample-dataset:
 	@echo "🌍 Generating complete sample dataset..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, FullDatasetWorkflow, DatasetSpec; from loader import DatabaseConfig; config = WorkflowConfig(batch_size=25, seed=42, write_mode='truncate'); spec = DatasetSpec(people_count=100, companies_count=10); workflow = FullDatasetWorkflow(config, DatabaseConfig.for_dev(), spec); result = workflow.execute(); summary = workflow.get_execution_summary(); print(f'✅ Generated complete dataset: {summary[\"overall_stats\"][\"total_records_generated\"]} total records in {summary[\"overall_stats\"][\"total_duration\"]:.1f}s')"
+	@python -c "import sys; sys.path.extend(['src', 'app']); \
+	from workflows import WorkflowConfig, DatasetWorkflow, DatasetSpec; \
+	from earth.core.loader import DatabaseConfig; \
+	config = WorkflowConfig(batch_size=25, seed=42, write_mode='truncate'); \
+	spec = DatasetSpec(people_count=100, companies_count=10, workflows={'people': 100, 'companies': 5}); \
+	workflow = DatasetWorkflow(config, DatabaseConfig.for_dev(), spec); \
+	result = workflow.execute(); \
+	summary = workflow.get_execution_summary(); \
+	print(f'✅ Generated complete dataset: {summary[\"dataset_spec\"][\"total_target_records\"]} \
+	total records in {summary[\"execution_summary\"][\"overall_duration\"]:.1f}s')"
 
 # ============================================================================
 # DATABASE OPERATIONS
@@ -230,17 +239,31 @@ prod-dataset:
 	@echo "🚀 Generating production-scale dataset..."
 	@echo "⚠️  This will generate a large dataset and may take several minutes"
 	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, FullDatasetWorkflow, DatasetSpec; from loader import DatabaseConfig; config = WorkflowConfig(batch_size=1000, seed=42, write_mode='truncate'); spec = DatasetSpec(people_count=10000, companies_count=500); workflow = FullDatasetWorkflow(config, DatabaseConfig.for_dev(), spec); result = workflow.execute(); summary = workflow.get_execution_summary(); print(f'✅ Generated production dataset: {summary[\"overall_stats\"][\"total_records_generated\"]} total records in {summary[\"overall_stats\"][\"total_duration\"]:.1f}s')"
+	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, FullDatasetWorkflow, DatasetSpec; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=1000, seed=42, write_mode='truncate'); spec = DatasetSpec(people_count=10000, companies_count=500); workflow = FullDatasetWorkflow(config, DatabaseConfig.for_dev(), spec); result = workflow.execute(); summary = workflow.get_execution_summary(); print(f'✅ Generated production dataset: {summary[\"overall_stats\"][\"total_records_generated\"]} total records in {summary[\"overall_stats\"][\"total_duration\"]:.1f}s')"
 
 # Validate data quality across all tables
 validate:
 	@echo "🔍 Validating data quality..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, PeopleWorkflow, CompaniesWorkflow; from loader import DatabaseConfig; import pandas as pd; config = WorkflowConfig(seed=42); db_config = DatabaseConfig.for_dev(); conn = db_config.connect_to_duckdb(); people_valid = len(conn.execute('SELECT * FROM raw.persons WHERE age < 18 OR age > 85').fetchall()) == 0; companies_valid = len(conn.execute('SELECT * FROM raw.companies WHERE employee_count <= 0').fetchall()) == 0; print('✅ Data validation passed' if people_valid and companies_valid else '❌ Data validation failed'); conn.close()"
+	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, PeopleWorkflow, CompaniesWorkflow; from earth.core.loader import connect_to_duckdb, DatabaseConfig; import pandas as pd; config = WorkflowConfig(seed=42); db_config = DatabaseConfig.for_dev(); conn = connect_to_duckdb(); people_valid = len(conn.execute('SELECT * FROM raw.persons WHERE age < 18 OR age > 85').fetchall()) == 0; companies_valid = len(conn.execute('SELECT * FROM raw.companies WHERE employee_count <= 0').fetchall()) == 0; print('✅ Data validation passed' if people_valid and companies_valid else '❌ Data validation failed'); conn.close()"
 
 # Show workflow execution performance
 benchmark:
 	@echo "⏱️  Benchmarking workflow performance..."
-	@python -c "import sys, time; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, PeopleWorkflow, CompaniesWorkflow; from loader import DatabaseConfig; config = WorkflowConfig(batch_size=100, seed=42); results = []; for workflow_class, name, count in [(PeopleWorkflow, 'People', 500), (CompaniesWorkflow, 'Companies', 50)]: start = time.time(); workflow = workflow_class(config, DatabaseConfig.for_testing()); result = workflow.execute(count); duration = time.time() - start; rate = count / duration; results.append((name, count, duration, rate)); print('\\n⏱️  Workflow Performance:'); [print(f'  {name}: {count} records in {duration:.1f}s ({rate:.0f} records/sec)') for name, count, duration, rate in results]"
+	@python -c "import sys, time; \
+	sys.path.extend(['src', 'app']); \
+	from workflows import WorkflowConfig, PeopleWorkflow, CompaniesWorkflow; \
+	from earth.core.loader import DatabaseConfig; \
+	config = WorkflowConfig(batch_size=100, seed=42); \
+	results = []; \
+	for workflow_class, name, count in [(PeopleWorkflow, 'People', 500), \
+	(CompaniesWorkflow, 'Companies', 50)]: \
+		start = time.time(); \
+	workflow = workflow_class(config, DatabaseConfig.for_testing()); \
+	result = workflow.execute(count); \
+	duration = time.time() - start; rate = count / duration; \
+	results.append((name, count, duration, rate)); \
+	print('\\n⏱️  Workflow Performance:'); \
+	[print(f'	{name}: {count} records in {duration:.1f}s ({rate:.0f} records/sec)') for name, count, duration, rate in results]"
 
 # ============================================================================
 # CI/CD SUPPORT

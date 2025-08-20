@@ -80,7 +80,6 @@ class TestSuiteManager:
 
     def list_available_tests(self) -> None:
         """Print all available test modules."""
-        print("🧪 Available Test Modules:")
         print("=" * 50)
 
         for category, tests in self.available_tests.items():
@@ -205,7 +204,6 @@ def get_test_dependencies() -> Dict[str, List[str]]:
 
 def check_test_environment() -> bool:
     """Check if the test environment is properly set up."""
-    print("🔍 Checking test environment...")
 
     # Check paths
     if not src_path.exists():

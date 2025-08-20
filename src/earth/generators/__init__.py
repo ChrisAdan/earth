@@ -10,6 +10,7 @@ The system supports:
 - Factory pattern for easy generator creation
 - Extensible registry system for new entity types
 """
+
 from .. import __version__
 from typing import Optional, List, Dict, Any, cast
 

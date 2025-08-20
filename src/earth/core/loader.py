@@ -45,7 +45,6 @@ def operate_on_table(
         - None for 'write' and 'clear' or 'drop' actions
     """
     full_table_name = f"{schema_name}.{table_name}"
-
     try:
         if action == "ping":
             # Check if table exists

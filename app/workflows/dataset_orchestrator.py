@@ -100,12 +100,10 @@ class DatasetSpec:
     min_ratio_people_to_companies: float = MIN_RATIO_PEOPLE_TO_COMPANIES
     max_ratio_people_to_companies: float = MAX_RATIO_PEOPLE_TO_COMPANIES
 
-
     def validate(self) -> None:
         """Validate dataset specification."""
         if not self.workflows:
             raise ValueError("Must specify at least one workflow")
-
         for workflow_name, count in self.workflows.items():
             if count <= 0:
                 raise ValueError(f"Record count must be positive for {workflow_name}")
@@ -124,7 +122,6 @@ class DatasetSpec:
             for dep in deps:
                 if dep not in self.workflows:
                     raise ValueError(f"Dependency '{dep}' not in workflows")
-        print(f"self.workflows: people: {self.workflows['people']}")
 
     def get_execution_order(self) -> List[List[str]]:
         """

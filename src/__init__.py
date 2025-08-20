@@ -100,7 +100,7 @@ __all__ = [
     "setup_logging",
     "log",
     "create_dev_database",
-    "create_prod_database", 
+    "create_prod_database",
     "create_test_database",
     "get_core_module_info",
     # Data models
