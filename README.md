@@ -81,6 +81,24 @@ earth/
 │               ├── vehicles.py
 │               └── schemas.py
 │
+├── scripts/
+│   ├── test/
+│   │   ├── runner.py
+│   │   ├── report.py
+│   │   ├── test_coverage.py
+│   │   ├── test_smoke.py
+│   │   └── benchmark.py
+│   ├── data/
+│   │   ├── sample.py
+│   │   ├── validate_data.py
+│   │   └── database_stats.py
+│   ├── dev/
+│   │   ├── lint.py
+│   │   ├── clean.py
+│   │   └── pre_commit.py
+│   └── workflows/
+│       ├── run_workflow.py
+│       └── list_workflows.py
 ├── logs/                            # Application logs
 │   └── loader/                      # Loader-specific logs
 │
@@ -93,15 +111,15 @@ earth/
 │   │   ├── test_person.py
 │   │   ├── test_company.py
 │   │   └── test_career.py
-│   ├── modules/
+│   ├── modules/                    # [Roadmap]
 │   │   ├── test_companies/
 │   │   ├── test_campaigns/
 │   │   └── test_automotive/
-│   └── app/                    # Test the application layer
+│   └── app/                        # Test application layer
 │       ├── test_main.py
 │       └── test_workflows.py
 │
-├── docs/                            # Documentation
+├── docs/                            # Documentation [Roadmap]
 │   ├── index.md
 │   ├── installation.md
 │   ├── application-usage.md         # How to use app/main.py
@@ -112,7 +130,7 @@ earth/
 │       ├── package_usage.py
 │       └── application_usage.py
 │
-└── data/                           # Optional: Sample data or schemas
+└── data/                           # Sample data or schemas [Roadmap]
     ├── schemas/
     │   ├── person.sql
     │   ├── companies.sql

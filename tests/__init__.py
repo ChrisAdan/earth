@@ -1,32 +1,6 @@
 """
 Earth Data Generator Test Suite
 ==============================
-
-This package provides comprehensive testing for the Earth synthetic data generator.
-The test suite is organized into logical modules that mirror the source code structure.
-
-Test Structure:
-- core/: Tests for database, utilities, and core functionality
-- generators/: Tests for individual data generators (person, company, etc.)
-- modules/: Tests for optional domain modules (companies, campaigns, automotive)
-- app/: Tests for application layer (main, workflows, orchestration)
-
-Usage:
-    # Run all tests via pytest
-    python -m pytest tests/
-
-    # Run specific modules
-    python -m pytest tests/core/
-    python -m pytest tests/app/
-
-    # Run via test runner
-    python -m tests
-    python tests/__main__.py
-
-    # Run via make commands
-    make test
-    make test-core
-    make test-app
 """
 
 import sys
@@ -65,6 +39,7 @@ __all__ = [
     "TEST_BATCH_SIZE",
     "run_test_suite",
     "check_test_environment",
+    "run_test_suite"
 ]
 
 

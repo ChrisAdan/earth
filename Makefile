@@ -1,5 +1,5 @@
 # Earth Data Generator - Enhanced Makefile with Modular Testing Support
-
+SCRIPTS_DIR := scripts
 .PHONY: setup install test clean run help workflows sample-people sample-companies sample-dataset stats
 .PHONY: test-all test-core test-generators test-modules test-app test-smoke test-quick test-verbose
 .PHONY: test-coverage test-report test-list test-check
@@ -119,7 +119,7 @@ test-check:
 # Generate detailed test report
 test-report:
 	@echo "📄 Generating Test Report..."
-	@python -c "import sys, os; sys.path.insert(0, 'tests'); from tests import test_manager; results = test_manager.run_all_tests(verbose=False); print('\\n📊 Test Summary Report:'); print('=' * 40); [print(f'  {cat.upper()}: {\"PASS\" if success else \"FAIL\"}') for cat, success in results.items()]"
+	@python $(SCRIPTS_DIR)/test/report.py
 
 # ============================================================================
 # LEGACY TESTING (for backward compatibility)
@@ -151,7 +151,7 @@ workflows:
 # Generate sample people data (100 records)
 sample-people:
 	@echo "👥 Generating sample people dataset (100 records)..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, PeopleWorkflow; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=50, seed=42, write_mode='truncate'); workflow = PeopleWorkflow(config, DatabaseConfig.for_dev()); result = workflow.execute(100); print(f'✅ Generated {result.records_generated} person records in {result.execution_time:.1f}s')"
+	@python $(SCRIPTS_DIR)/data/sample.py --type people --count 100 -v
 
 # Generate sample companies data (20 records)
 sample-companies:
