@@ -11,7 +11,7 @@ from typing import Dict, Any, Union, List, Tuple
 project_root: Path = Path(__file__).parent.parent.parent  # Go up to project root
 tests_path: Path = project_root
 src_path: Path = project_root / "src"
-app_path : Path= project_root / "app"
+app_path: Path = project_root / "app"
 
 # Add all necessary paths
 for path in [str(tests_path), str(src_path), str(app_path)]:
@@ -29,9 +29,9 @@ except ImportError:
 class TestReportExporter:
     """Handles exporting test reports in various formats."""
     
-    def __init__(self, project_root: Path) -> None:
-        self.project_root: Path = project_root
-        self.reports_dir: Path = project_root / "logs" / "test" / "reports"
+    def __init__(self, project_root: Path):
+        self.project_root = project_root
+        self.reports_dir = project_root / "logs" / "test" / "reports"
         self.reports_dir.mkdir(parents=True, exist_ok=True)
         
     def export_html(self, results: Union[Dict[str, bool], bool], timestamp: datetime) -> Path:
@@ -69,7 +69,7 @@ class TestReportExporter:
         md_content: str = self._generate_markdown_report(results, timestamp)
         
         filename: str = f"test_report_{timestamp.strftime('%Y%m%d_%H%M%S')}.md"
-        filepath: Path = self.reports_dir / filename
+        filepath : Path= self.reports_dir / filename
         
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(md_content)
@@ -264,7 +264,7 @@ class TestReportExporter:
         
         if isinstance(results, dict):
             for category, success in results.items():
-                status_class: bool = "status-pass" if success else "status-fail"
+                status_class: str = "status-pass" if success else "status-fail"
                 icon: str = "✅" if success else "❌"
                 status_text: str = "PASSED" if success else "FAILED"
                 
@@ -276,7 +276,7 @@ class TestReportExporter:
                 </tr>""")
         else:
             status_class: str = "status-pass" if results else "status-fail"
-            icon : str= "✅" if results else "❌"
+            icon: str = "✅" if results else "❌"
             status_text: str = "PASSED" if results else "FAILED"
             
             rows.append(f"""
@@ -338,14 +338,14 @@ class TestReportExporter:
         """Generate summary statistics."""
         if isinstance(results, dict):
             total: int = len(results)
-            passed: int= sum(1 for success in results.values() if success)
+            passed:int = sum(1 for success in results.values() if success)
             failed: int = total - passed
         else:
             total: int = 1
             passed: int = 1 if results else 0
             failed: int = 1 - passed
         
-        success_rate = (passed / total * 100) if total > 0 else 0
+        success_rate: int = (passed / total * 100) if total > 0 else 0
         
         return {
             "total": total,
@@ -393,7 +393,7 @@ def main():
             if total_passed == total_categories:
                 print('🎉 All test categories passed!')
             else:
-                failed_categories: list[str] = [cat for cat, success in results.items() if not success]
+                failed_categories: List[str] = [cat for cat, success in results.items() if not success]
                 print(f'⚠️  Failed categories: {", ".join(failed_categories)}')
         
         elif isinstance(results, bool):
@@ -410,13 +410,12 @@ def main():
         exporter: TestReportExporter = TestReportExporter(project_root)
         
         export_formats: List[str] = [args.export] if args.export != 'all' else ['html', 'json', 'markdown']
-        exported_files: List[Path] = []
+        exported_files: List[Tuple[str, Path]] = []
         
         for fmt in export_formats:
             try:
                 if fmt == 'html':
                     filepath: Path = exporter.export_html(results, timestamp)
-                    print('made it here')
                 elif fmt == 'json':
                     filepath: Path = exporter.export_json(results, timestamp)
                 elif fmt == 'markdown':
@@ -433,24 +432,24 @@ def main():
             for fmt, filepath in exported_files:
                 print(f'  📄 {fmt}: {filepath}')
         
-        # Create symlink to latest report
+        # Copy latest reports
         if exported_files:
             try:
+                import shutil
+                
                 latest_dir: Path = exporter.reports_dir / "latest"
                 latest_dir.mkdir(exist_ok=True)
                 
                 for fmt, filepath in exported_files:
-                    latest_link: Path = latest_dir / f"latest.{fmt.lower()}"
-                    if latest_link.exists() or latest_link.is_symlink():
-                        latest_link.unlink()
-                    latest_link.symlink_to(filepath.resolve())
+                    latest_copy: Path = latest_dir / f"latest.{fmt.lower()}"
+                    shutil.copy2(filepath, latest_copy)
                 
                 if not args.quiet:
-                    print(f'🔗 Latest reports linked in: {latest_dir}')
+                    print(f'📁 Latest reports copied to: {latest_dir}')
                     
             except Exception as e:
                 if not args.quiet:
-                    print(f"⚠️  Could not create latest links: {e}")
+                    print(f"⚠️  Could not copy latest reports: {e}")
 
 if __name__ == '__main__':
     main()

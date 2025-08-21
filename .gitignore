@@ -3,6 +3,11 @@
 *.egg-info
 __pycache__
 *.duckdb
-logs/
-!logs/test/reports/latest/latest.*
+logs/*
+!logs/test/
+logs/test/*
+!logs/test/reports/
+logs/test/reports/*
+!logs/test/reports/latest/
+
 .mypy*

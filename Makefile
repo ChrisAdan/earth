@@ -358,7 +358,7 @@ clean-test-reports:
 # Full test cycle with HTML export
 test-full-report: test-all test-export-html
 	@echo "🎉 Complete test cycle with report export finished"
-	
+
 # ============================================================================
 # HELP AND DOCUMENTATION
 # ============================================================================
@@ -412,3 +412,34 @@ module-help:
 	@echo "  ├── test_core.py       - Core functionality tests"
 	@echo "  ├── test_generation.py - Data generation tests"
 	@echo "  └── test_integration.py- Integration tests"
+
+	# Show test reporting help
+test-report-help:
+	@echo "📊 Earth Test Reporting System Help"
+	@echo "===================================="
+	@echo ""
+	@echo "Basic Reporting:"
+	@echo "  test-report           - Generate console test report"
+	@echo "  test-report-export    - Run tests and export HTML report"
+	@echo "  test-full-report      - Complete test cycle with HTML export"
+	@echo ""
+	@echo "Export Formats:"
+	@echo "  test-export-html      - Export professional HTML report"
+	@echo "  test-export-json      - Export JSON report for CI/CD integration"
+	@echo "  test-export-markdown  - Export Markdown report for documentation"
+	@echo "  test-export-all       - Export all formats (HTML, JSON, Markdown)"
+	@echo ""
+	@echo "Report Management:"
+	@echo "  test-reports-latest   - Show latest exported reports"
+	@echo "  test-report-open      - Open latest HTML report in browser"
+	@echo "  clean-test-reports    - Clean all exported reports"
+	@echo ""
+	@echo "Export Location:"
+	@echo "  📁 Reports are saved to: logs/test/reports/"
+	@echo "  🔗 Latest reports linked in: logs/test/reports/latest/"
+	@echo ""
+	@echo "Usage Examples:"
+	@echo "  make test-export-html                    # Quick HTML export"
+	@echo "  make test-full-report && make test-report-open  # Test + view report"
+	@echo "  make test-export-all                     # Export all formats"
+	@echo ""
