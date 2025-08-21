@@ -5,50 +5,68 @@ import sys
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Union, List, Tuple
+from typing import Dict, Any, Union, Optional
 
-# Add project paths - this ensures we can find the tests module
-project_root: Path = Path(__file__).parent.parent.parent  # Go up to project root
-tests_path: Path = project_root
-src_path: Path = project_root / "src"
-app_path: Path = project_root / "app"
+project_root = Path(__file__).parent.parent.parent 
+tests_path = project_root
+src_path = project_root / "src"
+app_path = project_root / "app"
 
-# Add all necessary paths
 for path in [str(tests_path), str(src_path), str(app_path)]:
     if path not in sys.path:
         sys.path.insert(0, path)
 
-# Now we can import from tests
 from tests import run_test_suite
 
 try:
     from earth import __version__ as earth_version
 except ImportError:
-    earth_version: str = "unknown"
+    earth_version = "unknown"
 
 class TestReportExporter:
-    """Handles exporting test reports in various formats."""
+    """Handles exporting test reports in various formats.
+    Supported formats: [html, json, markdown]"""
     
     def __init__(self, project_root: Path):
         self.project_root = project_root
         self.reports_dir = project_root / "logs" / "test" / "reports"
         self.reports_dir.mkdir(parents=True, exist_ok=True)
-        
-    def export_html(self, results: Union[Dict[str, bool], bool], timestamp: datetime) -> Path:
+    
+    def _write_to_file(self, path: Path, content: str, variant: str, operation: Optional[str]='r', encoding: Optional[str]='utf-8') -> None:
+        """Helper to write supported file types to disk"""
+        with open(path, operation, encoding=encoding) as f:
+            print(f'f is type: {type(f)}')
+            print(f'Writing type: {type}')
+            if variant in ['html', 'markdown']:
+                f.write(content)
+            elif variant in ['json']:
+                json.dump(content, f, indent=2)
+            else:
+                raise ValueError(f'Received unsupported write type: {type}')
+            
+    def export_html(self, results: Union[Dict[str, bool], bool], timestamp: datetime, write_latest: bool = False) -> Path:
         """Export test results as HTML report."""
-        html_content: str = self._generate_html_report(results, timestamp)
+        html_content = self._generate_html_report(results, timestamp)
         
-        filename: str = f"test_report_{timestamp.strftime('%Y%m%d_%H%M%S')}.html"
-        filepath: Path = self.reports_dir / filename
+        # Write timestamped file
+        filename = f"test_report_{timestamp.strftime('%Y%m%d_%H%M%S')}.html"
+        filepath = self.reports_dir / filename
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(html_content)
+        self._write_to_file(filepath, html_content, operation='w', variant='html')
+        
+        # Write latest file if requested
+        if write_latest:
+            latest_dir = self.reports_dir / "latest"
+            latest_dir.mkdir(parents=True, exist_ok=True)
+            latest_path = latest_dir / "latest.html"
+
+            self._write_to_file(latest_path, html_content, operation='w', variant='html')
             
         return filepath
     
-    def export_json(self, results: Union[Dict[str, bool], bool], timestamp: datetime) -> Path:
+    def export_json(self, results: Union[Dict[str, bool], bool], timestamp: datetime, write_latest: bool = False) -> Path:
         """Export test results as JSON report."""
-        report_data: Dict[str, Any] = {
+        json_content = {
             "timestamp": timestamp.isoformat(),
             "earth_version": earth_version,
             "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
@@ -56,36 +74,53 @@ class TestReportExporter:
             "summary": self._generate_summary(results)
         }
         
-        filename: str = f"test_report_{timestamp.strftime('%Y%m%d_%H%M%S')}.json"
-        filepath: Path = self.reports_dir / filename
+        # Write timestamped file
+        filename = f"test_report_{timestamp.strftime('%Y%m%d_%H%M%S')}.json"
+        filepath = self.reports_dir / filename
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(report_data, f, indent=2)
+        self._write_to_file(filepath, json_content, operation='w', variant='json')
+        
+        # Write latest file if requested
+        if write_latest:
+            latest_dir = self.reports_dir / "latest"
+            latest_dir.mkdir(parents=True, exist_ok=True)
+            latest_path = latest_dir / "latest.json"
+
+            self._write_to_file(latest_path, json_content, operation='w', variant='json')
             
         return filepath
     
-    def export_markdown(self, results: Union[Dict[str, bool], bool], timestamp: datetime) -> Path:
+
+    def export_markdown(self, results: Union[Dict[str, bool], bool], timestamp: datetime, write_latest: bool = False) -> Path:
         """Export test results as Markdown report."""
-        md_content: str = self._generate_markdown_report(results, timestamp)
+        md_content = self._generate_markdown_report(results, timestamp)
         
-        filename: str = f"test_report_{timestamp.strftime('%Y%m%d_%H%M%S')}.md"
-        filepath : Path= self.reports_dir / filename
+        # Write timestamped file
+        filename = f"test_report_{timestamp.strftime('%Y%m%d_%H%M%S')}.md"
+        filepath = self.reports_dir / filename
+
+        self._write_to_file(filepath, md_content, operation='w', variant='markdown')
+
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(md_content)
-            
+        # Write latest file if requested
+        if write_latest:
+            latest_dir = self.reports_dir / "latest"
+            latest_dir.mkdir(parents=True, exist_ok=True)
+            latest_path = latest_dir / "latest.md"
+            self._write_to_file(latest_path, md_content, operation='w', variant='markdown')
+
         return filepath
     
     def _generate_html_report(self, results: Union[Dict[str, bool], bool], timestamp: datetime) -> str:
         """Generate HTML report content."""
-        summary: Dict[str, Any] = self._generate_summary(results)
+        summary = self._generate_summary(results)
         
         # Determine overall status
-        overall_success: bool = summary["passed"] == summary["total"]
-        status_color: str = "#28a745" if overall_success else "#dc3545"
-        status_text: str = "PASSED" if overall_success else "FAILED"
+        overall_success = summary["passed"] == summary["total"]
+        status_color = "#28a745" if overall_success else "#dc3545"
+        status_text = "PASSED" if overall_success else "FAILED"
         
-        html_template: str = f"""
+        html_template = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -260,13 +295,13 @@ class TestReportExporter:
     
     def _generate_html_rows(self, results: Union[Dict[str, bool], bool]) -> str:
         """Generate HTML table rows for test results."""
-        rows: List[str] = []
+        rows = []
         
         if isinstance(results, dict):
             for category, success in results.items():
-                status_class: str = "status-pass" if success else "status-fail"
-                icon: str = "✅" if success else "❌"
-                status_text: str = "PASSED" if success else "FAILED"
+                status_class = "status-pass" if success else "status-fail"
+                icon = "✅" if success else "❌"
+                status_text = "PASSED" if success else "FAILED"
                 
                 rows.append(f"""
                 <tr>
@@ -275,9 +310,9 @@ class TestReportExporter:
                     <td><span class="{status_class}">{status_text}</span></td>
                 </tr>""")
         else:
-            status_class: str = "status-pass" if results else "status-fail"
-            icon: str = "✅" if results else "❌"
-            status_text: str = "PASSED" if results else "FAILED"
+            status_class = "status-pass" if results else "status-fail"
+            icon = "✅" if results else "❌"
+            status_text = "PASSED" if results else "FAILED"
             
             rows.append(f"""
             <tr>
@@ -290,9 +325,9 @@ class TestReportExporter:
     
     def _generate_markdown_report(self, results: Union[Dict[str, bool], bool], timestamp: datetime) -> str:
         """Generate Markdown report content."""
-        summary: Dict[str, Any] = self._generate_summary(results)
+        summary = self._generate_summary(results)
         
-        md_content: str = f"""# 🌍 Earth Data Generator - Test Report
+        md_content = f"""# 🌍 Earth Data Generator - Test Report
 
 **Generated:** {timestamp.strftime("%Y-%m-%d at %H:%M:%S")}  
 **Earth Version:** {earth_version}  
@@ -313,12 +348,12 @@ class TestReportExporter:
         
         if isinstance(results, dict):
             for category, success in results.items():
-                icon: str = "✅" if success else "❌"
-                status: str = "PASSED" if success else "FAILED"
+                icon = "✅" if success else "❌"
+                status = "PASSED" if success else "FAILED"
                 md_content += f"| {category.upper()} | {icon} | **{status}** |\n"
         else:
-            icon: str = "✅" if results else "❌"
-            status: str = "PASSED" if results else "FAILED"
+            icon = "✅" if results else "❌"
+            status = "PASSED" if results else "FAILED"
             md_content += f"| ALL TESTS | {icon} | **{status}** |\n"
         
         md_content += f"""
@@ -337,15 +372,15 @@ class TestReportExporter:
     def _generate_summary(self, results: Union[Dict[str, bool], bool]) -> Dict[str, Any]:
         """Generate summary statistics."""
         if isinstance(results, dict):
-            total: int = len(results)
-            passed:int = sum(1 for success in results.values() if success)
-            failed: int = total - passed
+            total = len(results)
+            passed = sum(1 for success in results.values() if success)
+            failed = total - passed
         else:
-            total: int = 1
-            passed: int = 1 if results else 0
-            failed: int = 1 - passed
+            total = 1
+            passed = 1 if results else 0
+            failed = 1 - passed
         
-        success_rate: int = (passed / total * 100) if total > 0 else 0
+        success_rate = (passed / total * 100) if total > 0 else 0
         
         return {
             "total": total,
@@ -356,21 +391,21 @@ class TestReportExporter:
 
 def main():
     """Generate and display test summary report with export options."""
-    from argparse import ArgumentParser
+    import argparse
     
-    parser: ArgumentParser = ArgumentParser(description="Generate test summary report")
+    parser = argparse.ArgumentParser(description="Generate test summary report")
     parser.add_argument('--export', choices=['html', 'json', 'markdown', 'all'], 
                        help='Export format(s)')
     parser.add_argument('--quiet', '-q', action='store_true', 
                        help='Only show export paths, no console output')
     
-    args: Tuple[Any, List] = parser.parse_args()
+    args = parser.parse_args()
     
     if not args.quiet:
         print("🔄 Running test suite for summary report...")
     
-    results: bool = run_test_suite(verbose=False)
-    timestamp: datetime = datetime.now()
+    results = run_test_suite(verbose=False)
+    timestamp = datetime.now()
     
     # Console output
     if not args.quiet:
@@ -380,26 +415,26 @@ def main():
         if isinstance(results, dict):
             # results is a dict of {category: bool}
             for cat, success in results.items():
-                status: str = "PASS" if success else "FAIL"
-                icon: str = "✅" if success else "❌"
+                status = "PASS" if success else "FAIL"
+                icon = "✅" if success else "❌"
                 print(f'  {icon} {cat.upper()}: {status}')
             
             # Overall summary
-            total_passed: int = sum(1 for success in results.values() if success)
-            total_categories: int = len(results)
+            total_passed = sum(1 for success in results.values() if success)
+            total_categories = len(results)
             
             print(f'\n📈 Overall: {total_passed}/{total_categories} categories passed')
             
             if total_passed == total_categories:
                 print('🎉 All test categories passed!')
             else:
-                failed_categories: List[str] = [cat for cat, success in results.items() if not success]
+                failed_categories = [cat for cat, success in results.items() if not success]
                 print(f'⚠️  Failed categories: {", ".join(failed_categories)}')
         
         elif isinstance(results, bool):
             # results is just a boolean
-            status: str = "PASS" if results else "FAIL"
-            icon: str = "✅" if results else "❌"
+            status = "PASS" if results else "FAIL"
+            icon = "✅" if results else "❌"
             print(f'  {icon} ALL TESTS: {status}')
         
         else:
@@ -407,19 +442,19 @@ def main():
     
     # Export functionality
     if args.export:
-        exporter: TestReportExporter = TestReportExporter(project_root)
+        exporter = TestReportExporter(project_root)
         
-        export_formats: List[str] = [args.export] if args.export != 'all' else ['html', 'json', 'markdown']
-        exported_files: List[Tuple[str, Path]] = []
+        export_formats = [args.export] if args.export != 'all' else ['html', 'json', 'markdown']
+        exported_files = []
         
         for fmt in export_formats:
             try:
                 if fmt == 'html':
-                    filepath: Path = exporter.export_html(results, timestamp)
+                    filepath = exporter.export_html(results, timestamp, write_latest=True)
                 elif fmt == 'json':
-                    filepath: Path = exporter.export_json(results, timestamp)
+                    filepath = exporter.export_json(results, timestamp, write_latest=True)
                 elif fmt == 'markdown':
-                    filepath: Path = exporter.export_markdown(results, timestamp)
+                    filepath = exporter.export_markdown(results, timestamp, write_latest=True)
                 
                 exported_files.append((fmt.upper(), filepath))
                 
@@ -431,25 +466,17 @@ def main():
             print(f'\n📁 Exported {len(exported_files)} report(s):')
             for fmt, filepath in exported_files:
                 print(f'  📄 {fmt}: {filepath}')
-        
-        # Copy latest reports
-        if exported_files:
-            try:
-                import shutil
-                
-                latest_dir: Path = exporter.reports_dir / "latest"
-                latest_dir.mkdir(exist_ok=True)
-                
-                for fmt, filepath in exported_files:
-                    latest_copy: Path = latest_dir / f"latest.{fmt.lower()}"
-                    shutil.copy2(filepath, latest_copy)
-                
-                if not args.quiet:
-                    print(f'📁 Latest reports copied to: {latest_dir}')
-                    
-            except Exception as e:
-                if not args.quiet:
-                    print(f"⚠️  Could not copy latest reports: {e}")
+            
+            # Show latest files
+            latest_dir = exporter.reports_dir / "latest"
+            if latest_dir.exists():
+                latest_files = list(latest_dir.glob("latest.*"))
+                if latest_files:
+                    print(f'\n🔗 Latest reports available:')
+                    for latest_file in latest_files:
+                        file_size = latest_file.stat().st_size
+                        print(f'  📄 {latest_file} ({file_size} bytes)')
+                    print(f'📁 Latest directory: {latest_dir}')
 
 if __name__ == '__main__':
     main()

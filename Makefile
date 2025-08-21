@@ -303,11 +303,6 @@ test-module:
 # TEST REPORTING AND EXPORTS
 # ============================================================================
 
-# Generate detailed test report (console only)
-test-report:
-	@echo "📄 Generating Test Report..."
-	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py
-
 # Export test reports in various formats
 test-export-html:
 	@echo "📄 Exporting HTML Test Report..."
@@ -332,7 +327,23 @@ test-report-export: test-export-html
 # Show latest test reports
 test-reports-latest:
 	@echo "📁 Latest test reports:"
-	@ls -la logs/test/reports/latest/ 2>/dev/null || echo "No reports found. Run 'make test-export-all' first."
+	@if [ -d "logs/test/reports/latest" ]; then \
+		echo "Directory contents:"; \
+		ls -la logs/test/reports/latest/; \
+		echo ""; \
+		echo "File types:"; \
+		for file in logs/test/reports/latest/latest.*; do \
+			if [ -f "$file" ]; then \
+				if [ -L "$file" ]; then \
+					echo "🔗 $file -> $(readlink $file) (SYMLINK)"; \
+				else \
+					echo "📄 $file ($(stat -f%z $file 2>/dev/null || stat -c%s $file 2>/dev/null) bytes) (REAL FILE)"; \
+				fi; \
+			fi; \
+		done; \
+	else \
+		echo "No reports found. Run 'make test-export-all' first."; \
+	fi
 
 # Open latest HTML report in browser (macOS/Linux)
 test-report-open:
