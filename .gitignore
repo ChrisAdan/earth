@@ -10,6 +10,6 @@ logs/test/*
 logs/test/reports/*
 !logs/test/reports/latest/
 logs/test/reports/latest/*
-!logs/test/reports/latest/*.md
+!logs/test/reports/latest/latest.*
 
 .mypy*
