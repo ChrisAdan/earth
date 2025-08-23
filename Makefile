@@ -1,51 +1,303 @@
-# Earth Data Generator - Enhanced Makefile with Modular Testing Support
+# Earth Data Generator - Enhanced Makefile with Nested Help System
 SCRIPTS_DIR := scripts
 .PHONY: setup install test clean run help workflows sample-people sample-companies sample-dataset stats
 .PHONY: test-all test-core test-generators test-modules test-app test-smoke test-quick test-verbose
 .PHONY: test-coverage test-report test-list test-check
+.PHONY: help-setup help-test help-sample help-data help-dev help-prod help-reports help-modules
 
-# Default target
+# ============================================================================
+# DEFAULT HELP - DIRECTORY OVERVIEW
+# ============================================================================
+
+# Default target - show main help directory
 help:
-	@echo "🌍 Earth Data Generator - Available Commands:"
+	@echo "🌍 Earth Data Generator - Command Directory"
 	@echo "Author: Chris Adan"
 	@echo "Github: https://github.com/ChrisAdan/earth/tree/main"
 	@echo ""
-	@echo "  hello	   - Say hi"
+	@echo "📋 COMMAND CATEGORIES - Use 'make help-[category]' for details:"
 	@echo ""
-	@echo "Setup & Installation:"
-	@echo "  setup     - Initial project setup (create venv, install dependencies)"
-	@echo "  install   - Install/reinstall the earth package"
+	@echo "🔧 Setup & Installation:"
+	@echo "   make help-setup      - Environment setup, installation, dependencies"
 	@echo ""
-	@echo "Testing & Development:"
-	@echo "  test           - Run comprehensive test suite (all modules)"
-	@echo "  test-core      - Run core functionality tests (database, utilities)"
-	@echo "  test-generators - Run data generator tests (person, company, etc.)"
-	@echo "  test-modules   - Run optional module tests (companies, campaigns, etc.)"
-	@echo "  test-app       - Run application layer tests (workflows, orchestration)"
-	@echo "  test-smoke     - Run quick smoke test (basic functionality)"
-	@echo "  test-quick     - Run essential tests only (fast)"
-	@echo "  test-verbose   - Run all tests with detailed output"
-	@echo "  test-coverage  - Run tests with coverage reporting"
-	@echo "  test-list      - List all available test modules"
-	@echo "  test-check     - Check test environment setup"
-	@echo "  lint           - Run code formatting and type checking"
+	@echo "🧪 Testing & Development:"
+	@echo "   make help-test       - Testing system (unit, integration, coverage)"
+	@echo "   make help-dev        - Development workflows and tools"
 	@echo ""
-	@echo "Data Generation:"
-	@echo "  run       - Run the main interactive application"
-	@echo "  workflows - List available data generation workflows"
+	@echo "🎲 Data Generation:"
+	@echo "   make help-sample     - Quick sample data generation"
+	@echo "   make help-data       - Database operations and statistics"
 	@echo ""
-	@echo "Quick Samples (for testing):"
-	@echo "  sample-people    - Generate 100 person records"
-	@echo "  sample-companies - Generate 20 company records"
-	@echo "  sample-dataset   - Generate complete mini dataset (people + companies)"
+	@echo "📊 Reporting & Analysis:"
+	@echo "   make help-reports    - Test reporting and export options"
 	@echo ""
-	@echo "Database Management:"
-	@echo "  stats     - Show database statistics"
-	@echo "  clean     - Clean up generated files and databases"
+	@echo "📦 Module Development:"
+	@echo "   make help-modules    - Module creation and testing"
 	@echo ""
+	@echo "🚀 Production & CI/CD:"
+	@echo "   make help-prod       - Production workflows and validation"
+	@echo ""
+	@echo "⚡ QUICK COMMANDS:"
+	@echo "   make hello           - Say hi"
+	@echo "   make run             - Start interactive application"
+	@echo "   make workflows       - List available workflows"
+	@echo "   make clean           - Clean up generated files"
+	@echo ""
+	@echo "💡 TIP: Run 'make help-[category]' to see detailed commands for each area"
 
 hello:
-	@echo "Hello, world!"
+	@echo "Hello, world! 🌍"
+
+# ============================================================================
+# SETUP & INSTALLATION HELP
+# ============================================================================
+
+help-setup:
+	@echo "🔧 Setup & Installation Commands"
+	@echo "================================"
+	@echo ""
+	@echo "Initial Setup:"
+	@echo "   make setup           - Complete project setup (venv + dependencies)"
+	@echo "   make install         - Install/reinstall earth package in dev mode"
+	@echo ""
+	@echo "Development Dependencies:"
+	@echo "   make lint            - Install and run code formatting + type checking"
+	@echo ""
+	@echo "Environment Management:"
+	@echo "   make clean           - Clean up generated files and databases"
+	@echo ""
+	@echo "Prerequisites:"
+	@echo "   • Python 3.8+ required"
+	@echo "   • pip package manager"
+	@echo "   • Virtual environment recommended"
+	@echo ""
+	@echo "Quick Start:"
+	@echo "   make setup && make install && make test-smoke"
+
+# ============================================================================
+# TESTING HELP
+# ============================================================================
+
+help-test:
+	@echo "🧪 Testing System Commands"
+	@echo "==========================="
+	@echo ""
+	@echo "🎯 Test Categories:"
+	@echo "   make test-core       - Core functionality (database, utilities)"
+	@echo "   make test-generators - Data generators (person, company, career)"
+	@echo "   make test-modules    - Optional modules (companies, campaigns, automotive)"
+	@echo "   make test-app        - Application layer (workflows, orchestration)"
+	@echo ""
+	@echo "⚡ Execution Modes:"
+	@echo "   make test            - Complete test suite (default: test-all)"
+	@echo "   make test-all        - Run comprehensive test suite"
+	@echo "   make test-quick      - Essential tests only (core + generators)"
+	@echo "   make test-smoke      - Quick smoke test for basic validation"
+	@echo "   make test-verbose    - All tests with detailed output"
+	@echo ""
+	@echo "📊 Coverage & Analysis:"
+	@echo "   make test-coverage   - Run tests with HTML coverage report"
+	@echo "   make test-report     - Generate detailed test summary"
+	@echo ""
+	@echo "🔍 Test Management:"
+	@echo "   make test-list       - List all available test modules"
+	@echo "   make test-check      - Verify test environment setup"
+	@echo ""
+	@echo "Development Cycles:"
+	@echo "   make dev-test        - Install + quick tests (fast cycle)"
+	@echo "   make dev-full        - Install + lint + all tests (thorough)"
+	@echo "   make pre-commit      - Quick validation before commit"
+	@echo ""
+	@echo "💡 Coverage reports saved to: htmlcov/"
+
+# ============================================================================
+# SAMPLE DATA HELP
+# ============================================================================
+
+help-sample:
+	@echo "🎲 Sample Data Generation Commands"
+	@echo "=================================="
+	@echo ""
+	@echo "🚀 Quick Samples (for testing):"
+	@echo "   make sample-people       - Generate 100 person records"
+	@echo "   make sample-companies    - Generate 20 company records"
+	@echo "   make sample-dataset      - Complete mini dataset (template-based)"
+	@echo ""
+	@echo "🎯 Dataset Generation Options:"
+	@echo "   make sample-dataset-template  - Generate from 'small_demo' template"
+	@echo "   make sample-dataset-custom    - Custom sized dataset (150 people, 15 companies)"
+	@echo "   make sample-dataset-memory    - Quick in-memory generation (no database)"
+	@echo "   make sample-dataset-extended  - Extended dataset with validation"
+	@echo ""
+	@echo "📈 Available Templates:"
+	@echo "   • small_demo    - 50 people, 10 companies"
+	@echo "   • medium_dev    - 500 people, 50 companies"
+	@echo "   • large_production - 5000 people, 200 companies"
+	@echo ""
+	@echo "⚙️  Configuration:"
+	@echo "   • All samples use seed=42 for reproducible results"
+	@echo "   • Data stored in earth.duckdb by default"
+	@echo "   • Batch processing optimized for performance"
+	@echo ""
+	@echo "💡 Use 'make workflows' to see all available data generation workflows"
+
+# ============================================================================
+# DATABASE & DATA HELP
+# ============================================================================
+
+help-data:
+	@echo "📊 Database Operations & Statistics"
+	@echo "==================================="
+	@echo ""
+	@echo "📈 Statistics & Analysis:"
+	@echo "   make stats           - Show database statistics for all tables"
+	@echo "   make validate        - Validate data quality across all tables"
+	@echo "   make benchmark       - Performance benchmark of workflows"
+	@echo ""
+	@echo "🔍 Data Inspection:"
+	@echo "   • People Table: Age ranges, income statistics, job titles"
+	@echo "   • Companies Table: Employee counts, industry distribution"
+	@echo ""
+	@echo "🗄️  Database Management:"
+	@echo "   • Default database: earth.duckdb"
+	@echo "   • Schema: raw (persons, companies tables)"
+	@echo "   • Connection: DuckDB embedded database"
+	@echo ""
+	@echo "🧹 Cleanup:"
+	@echo "   make clean           - Remove database and generated files"
+	@echo ""
+	@echo "💡 Database files are automatically created when first running data generation"
+
+# ============================================================================
+# DEVELOPMENT HELP
+# ============================================================================
+
+help-dev:
+	@echo "⚙️  Development Tools & Workflows"
+	@echo "================================="
+	@echo ""
+	@echo "🔄 Development Cycles:"
+	@echo "   make dev-test        - Fast cycle: install + essential tests"
+	@echo "   make dev-full        - Full cycle: install + lint + all tests"
+	@echo "   make pre-commit      - Pre-commit validation: lint + smoke test"
+	@echo ""
+	@echo "🔍 Code Quality:"
+	@echo "   make lint            - Code formatting (black) + type checking (mypy)"
+	@echo ""
+	@echo "🎯 Application Testing:"
+	@echo "   make run             - Start interactive Earth application"
+	@echo "   make workflows       - List available data generation workflows"
+	@echo ""
+	@echo "📦 Package Management:"
+	@echo "   make install         - Reinstall earth package in dev mode"
+	@echo ""
+	@echo "🧹 Maintenance:"
+	@echo "   make clean           - Clean generated files and caches"
+	@echo ""
+	@echo "Configuration Files:"
+	@echo "   • setup.py           - Package configuration"
+	@echo "   • setup.sh           - Environment setup script"
+	@echo "   • Makefile           - Build and development commands"
+
+# ============================================================================
+# PRODUCTION & CI/CD HELP
+# ============================================================================
+
+help-prod:
+	@echo "🚀 Production & CI/CD Commands"
+	@echo "==============================="
+	@echo ""
+	@echo "🏭 Production Workflows:"
+	@echo "   make prod-dataset    - Generate production-scale dataset"
+	@echo "                         (⚠️  Large dataset: 10k people, 500 companies)"
+	@echo ""
+	@echo "✅ Validation & Quality:"
+	@echo "   make validate        - Data quality validation across all tables"
+	@echo "   make benchmark       - Workflow performance benchmarking"
+	@echo ""
+	@echo "🤖 CI/CD Integration:"
+	@echo "   make ci-test         - Comprehensive testing for CI pipelines"
+	@echo "   make cd-validate     - Validation for CD deployment"
+	@echo ""
+	@echo "📊 Performance Metrics:"
+	@echo "   • Record generation rates"
+	@echo "   • Memory usage validation"
+	@echo "   • Database integrity checks"
+	@echo ""
+	@echo "⚠️  Production Notes:"
+	@echo "   • Production dataset generation may take several minutes"
+	@echo "   • Requires confirmation before execution"
+	@echo "   • Uses optimized batch sizes for performance"
+
+# ============================================================================
+# REPORTS HELP
+# ============================================================================
+
+help-reports:
+	@echo "📊 Test Reporting & Export System"
+	@echo "=================================="
+	@echo ""
+	@echo "📄 Report Generation:"
+	@echo "   make test-report         - Generate console test summary"
+	@echo "   make test-report-export  - Run tests + export HTML report"
+	@echo "   make test-full-report    - Complete test cycle with HTML export"
+	@echo ""
+	@echo "📤 Export Formats:"
+	@echo "   make test-export-html      - Professional HTML report"
+	@echo "   make test-export-json      - JSON report (CI/CD integration)"
+	@echo "   make test-export-markdown  - Markdown report (documentation)"
+	@echo "   make test-export-all       - Export all formats"
+	@echo ""
+	@echo "📁 Report Management:"
+	@echo "   make test-reports-latest   - Show latest exported reports"
+	@echo "   make test-report-open      - Open latest HTML report in browser"
+	@echo "   make clean-test-reports    - Clean all exported reports"
+	@echo ""
+	@echo "📂 Export Location:"
+	@echo "   • Reports saved to: logs/test/reports/"
+	@echo "   • Latest reports: logs/test/reports/latest/"
+	@echo ""
+	@echo "🎯 Usage Examples:"
+	@echo "   make test-export-html && make test-report-open"
+	@echo "   make test-full-report    # Complete test + HTML export"
+
+# ============================================================================
+# MODULES HELP
+# ============================================================================
+
+help-modules:
+	@echo "📦 Module Development System"
+	@echo "============================="
+	@echo ""
+	@echo "🏗️  Module Creation:"
+	@echo "   make create-module-tests - Create test structure for new module"
+	@echo "                             (Interactive: prompts for module name)"
+	@echo ""
+	@echo "🧪 Module Testing:"
+	@echo "   make test-modules        - Test all optional modules"
+	@echo "   make test-module         - Test specific module (interactive)"
+	@echo ""
+	@echo "📁 Module Structure:"
+	@echo "   src/earth/modules/your_module/        # Module source code"
+	@echo "   tests/modules/test_your_module/       # Module tests"
+	@echo "   ├── __init__.py                       # Test initialization"
+	@echo "   ├── test_core.py                      # Core functionality"
+	@echo "   ├── test_generation.py                # Data generation"
+	@echo "   └── test_integration.py               # Integration tests"
+	@echo ""
+	@echo "🎯 Current Modules:"
+	@echo "   • companies     - Company data and operations"
+	@echo "   • campaigns     - Marketing campaign generation"
+	@echo "   • automotive    - Vehicle and automotive data"
+	@echo ""
+	@echo "💡 Module Development Workflow:"
+	@echo "   1. Create module code in src/earth/modules/"
+	@echo "   2. Run 'make create-module-tests' for test structure"
+	@echo "   3. Add tests and run 'make test-module'"
+
+# ============================================================================
+# SETUP & INSTALLATION
+# ============================================================================
 
 # Setup virtual environment and install dependencies
 setup:
@@ -58,10 +310,10 @@ install:
 	@pip install -e .
 
 # ============================================================================
-# MODULAR TESTING SYSTEM
+# TESTING SYSTEM
 # ============================================================================
 
-# Run comprehensive test suite (all modules)
+# Run comprehensive test suite (default)
 test: test-all
 
 test-all:
@@ -104,7 +356,7 @@ test-verbose:
 	@echo "📝 Running Verbose Test Suite..."
 	@python -m tests all --verbose
 
-# Run tests with coverage reporting (requires coverage package)
+# Run tests with coverage reporting
 test-coverage:
 	@echo "📊 Running Tests with Coverage..."
 	@command -v coverage >/dev/null 2>&1 || { echo "Installing coverage..."; pip install coverage; }
@@ -129,15 +381,6 @@ test-report:
 	@cd $(PWD) && python $(SCRIPTS_DIR)/test/report.py
 
 # ============================================================================
-# LEGACY TESTING (for backward compatibility)
-# ============================================================================
-
-# Legacy comprehensive test (now redirects to modular system)
-test-legacy:
-	@echo "⚠️  Using legacy test system (consider using modular tests)"
-	@python tests/unit_test.py
-
-# ============================================================================
 # DEVELOPMENT WORKFLOWS
 # ============================================================================
 
@@ -150,6 +393,18 @@ run:
 workflows:
 	@echo "📋 Available Earth Workflows:"
 	@python -c "import sys; sys.path.insert(0, 'app'); from workflows import AVAILABLE_WORKFLOWS; [print(f'  • {name}: {info[\"description\"]}') for name, info in AVAILABLE_WORKFLOWS.items()]"
+
+# Development workflow - install and run essential tests
+dev-test: install test-quick
+	@echo "🔄 Development test cycle complete"
+
+# Full development cycle - install, lint, and test everything
+dev-full: install lint test-all
+	@echo "🚀 Full development cycle complete"
+
+# Pre-commit workflow - quick validation before commit
+pre-commit: lint test-smoke
+	@echo "✅ Pre-commit checks passed"
 
 # ============================================================================
 # SAMPLE DATA GENERATION
@@ -165,19 +420,83 @@ sample-companies:
 	@echo "🏢 Generating sample companies dataset (20 records)..."
 	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, CompaniesWorkflow; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=10, seed=42, write_mode='truncate'); workflow = CompaniesWorkflow(config, DatabaseConfig.for_dev()); result = workflow.execute(20); print(f'✅ Generated {result.records_generated} company records in {result.execution_time:.1f}s')"
 
-# Generate complete mini dataset
+# Generate complete sample dataset using template
 sample-dataset:
-	@echo "🌍 Generating complete sample dataset..."
+	@echo "🌍 Generating sample dataset from template..."
 	@python -c "import sys; sys.path.extend(['src', 'app']); \
-	from workflows import WorkflowConfig, DatasetWorkflow, DatasetSpec; \
+	from workflows import create_dataset_workflow, WorkflowConfig; \
 	from earth.core.loader import DatabaseConfig; \
 	config = WorkflowConfig(batch_size=25, seed=42, write_mode='truncate'); \
-	spec = DatasetSpec(people_count=100, companies_count=10, workflows={'people': 100, 'companies': 5}); \
-	workflow = DatasetWorkflow(config, DatabaseConfig.for_dev(), spec); \
+	workflow = create_dataset_workflow('small_demo', config=config, db_config=DatabaseConfig.for_dev()); \
 	result = workflow.execute(); \
 	summary = workflow.get_execution_summary(); \
-	print(f'✅ Generated complete dataset: {summary[\"dataset_spec\"][\"total_target_records\"]} \
-	total records in {summary[\"execution_summary\"][\"overall_duration\"]:.1f}s')"
+	print(f'✅ Generated template dataset: {summary[\"execution_summary\"][\"total_records_generated\"]} total records in {summary[\"execution_summary\"][\"overall_duration\"]:.1f}s')"
+
+# Alternative: Generate from template (cleaner approach)
+sample-dataset-template:
+	@echo "🌍 Generating sample dataset from template..."
+	@python -c "import sys; sys.path.extend(['src', 'app']); \
+	from workflows import create_dataset_workflow, WorkflowConfig; \
+	from earth.core.loader import DatabaseConfig; \
+	config = WorkflowConfig(batch_size=25, seed=42, write_mode='truncate'); \
+	workflow = create_dataset_workflow('small_demo', config=config, db_config=DatabaseConfig.for_dev()); \
+	result = workflow.execute(); \
+	summary = workflow.get_execution_summary(); \
+	print(f'✅ Generated template dataset: {summary[\"execution_summary\"][\"total_records_generated\"]} total records in {summary[\"execution_summary\"][\"overall_duration\"]:.1f}s')"
+
+# Generate custom dataset with specific counts
+sample-dataset-custom:
+	@echo "🌍 Generating custom dataset..."
+	@python -c "import sys; sys.path.extend(['src', 'app']); \
+	from workflows import create_dataset_workflow, WorkflowConfig; \
+	from earth.core.loader import DatabaseConfig; \
+	config = WorkflowConfig(batch_size=50, seed=42, write_mode='truncate'); \
+	workflow = create_dataset_workflow(companies=15, people=150, config=config, db_config=DatabaseConfig.for_dev()); \
+	result = workflow.execute(); \
+	summary = workflow.get_execution_summary(); \
+	exec_summary = summary['execution_summary']; \
+	perf_metrics = summary['performance_metrics']; \
+	print(f'✅ Dataset complete: {exec_summary[\"total_records_generated\"]} records'); \
+	print(f'   • Duration: {exec_summary[\"overall_duration\"]:.1f}s'); \
+	print(f'   • Rate: {perf_metrics[\"average_records_per_second\"]:.0f} records/sec'); \
+	print(f'   • Workflows: {perf_metrics[\"workflows_completed\"]} completed')"
+
+# Quick in-memory dataset generation (no database)
+sample-dataset-memory:
+	@echo "🧠 Generating in-memory dataset..."
+	@python -c "import sys; sys.path.extend(['src', 'app']); \
+	from workflows import quick_generate_full_dataset; \
+	import json; \
+	result = quick_generate_full_dataset(companies=5, people=25, seed=42); \
+	total_records = sum(len(records) for records in result.values()); \
+	print(f'✅ Generated in-memory dataset: {total_records} total records'); \
+	for entity_type, records in result.items(): \
+		print(f'   • {entity_type}: {len(records)} records'); \
+	print('📋 Sample company:', json.dumps(result['company'][0], indent=2, default=str) if result['company'] else 'None')"
+
+# Extended dataset with validation
+sample-dataset-extended:
+	@echo "🌍 Generating extended dataset with validation..."
+	@python -c "import sys; sys.path.extend(['src', 'app']); \
+	from workflows import WorkflowConfig, DatasetSpec, create_dataset_workflow; \
+	from workflows.config import validate_full_dataset_ratios; \
+	from earth.core.loader import DatabaseConfig; \
+	import time; \
+	start = time.time(); \
+	companies, people = 20, 200; \
+	warnings = validate_full_dataset_ratios({'companies': companies, 'people': people}); \
+	if warnings: [print(f'⚠️  {w}') for w in warnings]; \
+	config = WorkflowConfig(batch_size=50, seed=42, write_mode='truncate'); \
+	workflow = create_dataset_workflow(companies=companies, people=people, config=config, db_config=DatabaseConfig.for_dev()); \
+	result = workflow.execute(); \
+	summary = workflow.get_execution_summary(); \
+	exec_sum = summary['execution_summary']; \
+	steps = summary['workflow_steps']; \
+	print(f'\\n✅ Extended dataset complete in {time.time()-start:.1f}s total'); \
+	print(f'   • Records generated: {exec_sum[\"total_records_generated\"]}'); \
+	print(f'   • Parallel efficiency: {exec_sum[\"parallel_efficiency\"]:.2f}x'); \
+	print('\\n📊 Workflow breakdown:'); \
+	[print(f'   • {step[\"workflow_name\"]}: {step.get(\"records_generated\", 0)} records in {step[\"duration\"]:.1f}s') for step in steps if step['status'] == 'completed']"
 
 # ============================================================================
 # DATABASE OPERATIONS
@@ -194,50 +513,6 @@ stats:
 	@python -c "import sys; sys.path.insert(0, 'src'); from earth.core.loader import connect_to_duckdb, operate_on_table, DatabaseConfig; conn = connect_to_duckdb(DatabaseConfig.for_dev()); result = operate_on_table(conn, 'raw', 'companies', 'read', query='SELECT COUNT(*) as total_companies, AVG(employee_count) as avg_employees, COUNT(DISTINCT industry) as unique_industries FROM raw.companies'); print(result.to_string(index=False)) if not result.empty else print('No company data found'); conn.close()" 2>/dev/null || echo "No company data found"
 
 # ============================================================================
-# MAINTENANCE
-# ============================================================================
-
-# Clean up generated files
-clean:
-	@echo "🧹 Cleaning up generated files..."
-	@rm -f earth.duckdb
-	@rm -rf data/
-	@rm -rf logs/
-	@rm -rf htmlcov/
-	@rm -rf .coverage
-	@rm -rf src/earth.egg-info/
-	@rm -rf src/build/
-	@rm -rf src/dist/
-	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type f -name "*.pyc" -delete
-	@echo "✅ Cleanup complete"
-
-# Code formatting and type checking (requires dev dependencies)
-lint:
-	@echo "🔍 Running code formatting and type checking..."
-	@command -v black >/dev/null 2>&1 || { echo "Installing black..."; pip install black; }
-	@command -v mypy >/dev/null 2>&1 || { echo "Installing mypy..."; pip install mypy; }
-	@black src/ app/ tests/ scripts/ --line-length 88
-	@mypy src/ --ignore-missing-imports
-	@echo "✅ Linting complete"
-
-# ============================================================================
-# DEVELOPMENT CYCLES
-# ============================================================================
-
-# Development workflow - install and run essential tests
-dev-test: install test-quick
-	@echo "🔄 Development test cycle complete"
-
-# Full development cycle - install, lint, and test everything
-dev-full: install lint test-all
-	@echo "🚀 Full development cycle complete"
-
-# Pre-commit workflow - quick validation before commit
-pre-commit: lint test-smoke
-	@echo "✅ Pre-commit checks passed"
-
-# ============================================================================
 # PRODUCTION WORKFLOWS
 # ============================================================================
 
@@ -246,7 +521,7 @@ prod-dataset:
 	@echo "🚀 Generating production-scale dataset..."
 	@echo "⚠️  This will generate a large dataset and may take several minutes"
 	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, FullDatasetWorkflow, DatasetSpec; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=1000, seed=42, write_mode='truncate'); spec = DatasetSpec(people_count=10000, companies_count=500); workflow = FullDatasetWorkflow(config, DatabaseConfig.for_dev(), spec); result = workflow.execute(); summary = workflow.get_execution_summary(); print(f'✅ Generated production dataset: {summary[\"overall_stats\"][\"total_records_generated\"]} total records in {summary[\"overall_stats\"][\"total_duration\"]:.1f}s')"
+	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import create_dataset_workflow, WorkflowConfig; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=1000, seed=42, write_mode='truncate'); workflow = create_dataset_workflow(people=10000, companies=500, config=config, db_config=DatabaseConfig.for_dev()); result = workflow.execute(); summary = workflow.get_execution_summary(); exec_summary = summary['execution_summary']; print(f'✅ Generated production dataset: {exec_summary[\"total_records_generated\"]} total records in {exec_summary[\"overall_duration\"]:.1f}s')"
 
 # Validate data quality across all tables
 validate:
@@ -262,15 +537,15 @@ benchmark:
 	from earth.core.loader import DatabaseConfig; \
 	config = WorkflowConfig(batch_size=100, seed=42); \
 	results = []; \
-	for workflow_class, name, count in [(PeopleWorkflow, 'People', 500), \
-	(CompaniesWorkflow, 'Companies', 50)]: \
+	for workflow_class, name, count in [(CompaniesWorkflow, 'Companies', 50), (PeopleWorkflow, 'People', 500)]: \
 		start = time.time(); \
-	workflow = workflow_class(config, DatabaseConfig.for_testing()); \
-	result = workflow.execute(count); \
-	duration = time.time() - start; rate = count / duration; \
-	results.append((name, count, duration, rate)); \
+		workflow = workflow_class(config, DatabaseConfig.for_dev()); \
+		result = workflow.execute(count); \
+		duration = time.time() - start; \
+		rate = count / duration; \
+		results.append((name, count, duration, rate)); \
 	print('\\n⏱️  Workflow Performance:'); \
-	[print(f'	{name}: {count} records in {duration:.1f}s ({rate:.0f} records/sec)') for name, count, duration, rate in results]"
+	[print(f'   {name}: {count} records in {duration:.1f}s ({rate:.0f} records/sec)') for name, count, duration, rate in results]"
 
 # ============================================================================
 # CI/CD SUPPORT
@@ -306,6 +581,7 @@ test-module:
 		echo "❌ Module tests not found: tests/modules/test_$$module_name"; \
 		echo "💡 Use 'make create-module-tests' to create test structure"; \
 	fi
+
 # ============================================================================
 # TEST REPORTING AND EXPORTS
 # ============================================================================
@@ -340,9 +616,9 @@ test-reports-latest:
 		echo ""; \
 		echo "File types:"; \
 		for file in logs/test/reports/latest/latest.*; do \
-			if [ -f "$file" ]; then \
-				if [ -L "$file" ]; then \
-					echo "🔗 $file -> $(readlink $file) (SYMLINK)"; \
+			if [ -f "$$file" ]; then \
+				if [ -L "$$file" ]; then \
+					echo "🔗 $$file -> $$(readlink $$file) (SYMLINK)"; \
 				else \
 					echo "📄 $file ($(stat -f%z $file 2>/dev/null || stat -c%s $file 2>/dev/null) bytes) (REAL FILE)"; \
 				fi; \
@@ -378,86 +654,29 @@ test-full-report: test-all test-export-html
 	@echo "🎉 Complete test cycle with report export finished"
 
 # ============================================================================
-# HELP AND DOCUMENTATION
+# MAINTENANCE
 # ============================================================================
 
-# Show testing help
-test-help:
-	@echo "🧪 Earth Testing System Help"
-	@echo "============================="
-	@echo ""
-	@echo "Core Test Categories:"
-	@echo "  core       - Database operations, utilities, core functionality"
-	@echo "  generators - Data generators (person, company, career, etc.)"
-	@echo "  modules    - Optional domain modules (companies, campaigns, automotive)"
-	@echo "  app        - Application layer (workflows, orchestration, main app)"
-	@echo ""
-	@echo "Test Execution Modes:"
-	@echo "  test-all      - Run complete test suite with full coverage"
-	@echo "  test-quick    - Run essential tests only (core + generators)"
-	@echo "  test-smoke    - Run basic smoke test for rapid validation"
-	@echo "  test-verbose  - Run with detailed output and debugging info"
-	@echo ""
-	@echo "Development Workflows:"
-	@echo "  dev-test      - Install + quick tests (fast development cycle)"
-	@echo "  dev-full      - Install + lint + all tests (thorough validation)"
-	@echo "  pre-commit    - Quick validation before committing code"
-	@echo ""
-	@echo "Coverage and Reporting:"
-	@echo "  test-coverage - Generate HTML coverage report"
-	@echo "  test-report   - Generate summary test report"
-	@echo "  benchmark     - Performance benchmarking"
-	@echo ""
+# Clean up generated files
+clean:
+	@echo "🧹 Cleaning up generated files..."
+	@rm -f earth.duckdb
+	@rm -rf data/
+	@rm -rf logs/
+	@rm -rf htmlcov/
+	@rm -rf .coverage
+	@rm -rf src/earth.egg-info/
+	@rm -rf src/build/
+	@rm -rf src/dist/
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete
+	@echo "✅ Cleanup complete"
 
-# Show module development help
-module-help:
-	@echo "📦 Module Development Help"
-	@echo "=========================="
-	@echo ""
-	@echo "Creating New Modules:"
-	@echo "  1. Add module code to src/earth/modules/your_module/"
-	@echo "  2. Run 'make create-module-tests' to create test structure"
-	@echo "  3. Add tests to tests/modules/test_your_module/"
-	@echo "  4. Run 'make test-module' to test your module"
-	@echo ""
-	@echo "Testing Modules:"
-	@echo "  make test-modules      - Test all modules"
-	@echo "  make test-module       - Test specific module (interactive)"
-	@echo ""
-	@echo "Module Test Structure:"
-	@echo "  tests/modules/test_your_module/"
-	@echo "  ├── __init__.py        - Module test initialization"
-	@echo "  ├── test_core.py       - Core functionality tests"
-	@echo "  ├── test_generation.py - Data generation tests"
-	@echo "  └── test_integration.py- Integration tests"
-
-	# Show test reporting help
-test-report-help:
-	@echo "📊 Earth Test Reporting System Help"
-	@echo "===================================="
-	@echo ""
-	@echo "Basic Reporting:"
-	@echo "  test-report           - Generate console test report"
-	@echo "  test-report-export    - Run tests and export HTML report"
-	@echo "  test-full-report      - Complete test cycle with HTML export"
-	@echo ""
-	@echo "Export Formats:"
-	@echo "  test-export-html      - Export professional HTML report"
-	@echo "  test-export-json      - Export JSON report for CI/CD integration"
-	@echo "  test-export-markdown  - Export Markdown report for documentation"
-	@echo "  test-export-all       - Export all formats (HTML, JSON, Markdown)"
-	@echo ""
-	@echo "Report Management:"
-	@echo "  test-reports-latest   - Show latest exported reports"
-	@echo "  test-report-open      - Open latest HTML report in browser"
-	@echo "  clean-test-reports    - Clean all exported reports"
-	@echo ""
-	@echo "Export Location:"
-	@echo "  📁 Reports are saved to: logs/test/reports/"
-	@echo "  🔗 Latest reports linked in: logs/test/reports/latest/"
-	@echo ""
-	@echo "Usage Examples:"
-	@echo "  make test-export-html                    # Quick HTML export"
-	@echo "  make test-full-report && make test-report-open  # Test + view report"
-	@echo "  make test-export-all                     # Export all formats"
-	@echo ""
+# Code formatting and type checking (requires dev dependencies)
+lint:
+	@echo "🔍 Running code formatting and type checking..."
+	@command -v black >/dev/null 2>&1 || { echo "Installing black..."; pip install black; }
+	@command -v mypy >/dev/null 2>&1 || { echo "Installing mypy..."; pip install mypy; }
+	@black src/ app/ tests/ scripts/ --line-length 88
+	@mypy src/ --ignore-missing-imports
+	@echo "✅ Linting complete"

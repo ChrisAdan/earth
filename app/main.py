@@ -99,12 +99,12 @@ class EarthCLI:
 
     def _get_full_dataset_parameters(self) -> tuple:
         """Get parameters for full dataset generation."""
+        from workflows.config import get_full_dataset_defaults, validate_full_dataset_ratios
+        
         print("\n📊 Full Dataset Configuration:")
-        print(
-            "   This will generate a complete synthetic dataset with multiple entity types"
-        )
+        print("   This will generate a complete synthetic dataset with multiple entity types")
 
-        # Check existing data across all relevant tables
+        # Check existing data across all relevant tables - !refactor later
         tables_to_check = ["persons", "companies"]
         existing_data = {}
 
@@ -128,64 +128,58 @@ class EarthCLI:
                     write_mode = "truncate"
                     break
                 elif choice == "2":
-                    print(
-                        "💡 Tip: Choose 'people' or 'companies' workflow for individual entity generation"
-                    )
+                    print("💡 Tip: Choose 'people' or 'companies' workflow for individual entity generation")
                     return None, None
                 else:
                     print("❌ Please enter 1 or 2")
         else:
             write_mode = "truncate"
 
-        # Get dataset specifications
+        # Get default configuration
+        defaults = get_full_dataset_defaults()
+        workflow_counts = {}
+        
         print(f"\n📋 Dataset Size Configuration:")
+        
+        # Dynamic workflow configuration based on available workflows
+        for workflow_name in defaults["workflows"]:
+            default_count = defaults["workflows"][workflow_name]
+            
+            while True:
+                try:
+                    workflow_display = workflow_name.replace('_', ' ').title()
+                    prompt = f"Number of {workflow_display.lower()} to generate (default: {default_count:,}): "
+                    count_input = input(prompt).strip()
+                    count = int(count_input) if count_input else default_count
+                    
+                    if count <= 0:
+                        print("❌ Please enter a positive number")
+                        continue
+                    
+                    workflow_counts[workflow_name] = count
+                    break
+                    
+                except ValueError:
+                    print("❌ Please enter a valid number")
 
-        # People count
-        while True:
-            try:
-                people_input = input(
-                    "Number of people to generate (default: 1000): "
-                ).strip()
-                people_count = int(people_input) if people_input else 1000
-                if people_count <= 0:
-                    print("❌ Please enter a positive number")
-                    continue
-                break
-            except ValueError:
-                print("❌ Please enter a valid number")
-
-        # Companies count
-        while True:
-            try:
-                companies_input = input(
-                    "Number of companies to generate (default: 100): "
-                ).strip()
-                companies_count = int(companies_input) if companies_input else 100
-                if companies_count <= 0:
-                    print("❌ Please enter a positive number")
-                    continue
-                break
-            except ValueError:
-                print("❌ Please enter a valid number")
-
-        # Validate ratio
-        ratio = people_count / companies_count
-        if ratio < 5 or ratio > 50:
-            print(f"⚠️  Warning: People-to-companies ratio is {ratio:.1f}")
-            print(f"   Realistic range is 5-50 people per company")
+        # Validate ratios and relationships
+        warnings = validate_full_dataset_ratios(workflow_counts)
+        if warnings:
+            print(f"\n⚠️  Configuration warnings:")
+            for warning in warnings:
+                print(f"   • {warning}")
+            
             confirm = input("Continue anyway? (y/N): ").strip().lower()
             if confirm not in ["y", "yes"]:
                 return self._get_full_dataset_parameters()  # Restart
-        workflows = dict(
-            zip(list(ENTITY_WORKFLOWS.keys()), [people_count, companies_count])
-        )
-        print(f"passing workflows: {workflows}")
-        dataset_spec = DatasetSpec(
-            people_count=people_count,
-            companies_count=companies_count,
-            workflows=workflows,
-        )
-        print(f"added {people_count} people and {companies_count} companies")
+
+        # Create DatasetSpec using the new factory method
+        dataset_spec = DatasetSpec.for_full_dataset(**workflow_counts)
+        
+        print(f"\n✅ Configuration summary:")
+        for workflow_name, count in workflow_counts.items():
+            print(f"   • {workflow_name.title()}: {count:,} records")
+        print(f"   • Total records: {dataset_spec.get_total_records():,}")
 
         return dataset_spec, write_mode
 
@@ -266,16 +260,16 @@ class EarthCLI:
             # Create and execute workflow
             if workflow_name == "full_dataset":
                 dataset_spec = parameters
-                print("*" * 60)
+                print('*'*60)
                 print("debug log")
-                print(f"workflow_name: {workflow_name}")
-                print(f"config: {config}")
-                print(f"db_config: {self.db_config}")
-                print(f"dataset_spec: {dataset_spec}")
+                print(f'workflow_name: {workflow_name}')
+                print(f'config: {config}')
+                print(f'db_config: {self.db_config}')
+                print(f'dataset_spec: {dataset_spec}')
                 workflow = create_workflow_from_name(
                     workflow_name, config, self.db_config, dataset_spec=dataset_spec
                 )
-                print("got here")
+                print('got here')
 
                 print(f"\n🚀 Starting full dataset generation...")
                 print(f"   • People: {dataset_spec.people_count:,}")

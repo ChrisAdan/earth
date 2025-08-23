@@ -28,7 +28,6 @@ from .unified_workflow import (
 
 # Constant configs
 from .config import (
-    ENTITY_WORKFLOWS,
     AVAILABLE_WORKFLOWS,
     WORKFLOW_CONFIGS,
     DATASET_TEMPLATES,
