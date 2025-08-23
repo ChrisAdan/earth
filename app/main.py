@@ -28,6 +28,7 @@ from earth.core.loader import (
 from workflows import (
     WorkflowConfig,
     DatasetSpec,
+    ENTITY_WORKFLOWS,
     AVAILABLE_WORKFLOWS,
     get_workflow_info,
     create_workflow_from_name,
@@ -175,9 +176,14 @@ class EarthCLI:
             confirm = input("Continue anyway? (y/N): ").strip().lower()
             if confirm not in ["y", "yes"]:
                 return self._get_full_dataset_parameters()  # Restart
-
+        workflows = dict(
+            zip(list(ENTITY_WORKFLOWS.keys()), [people_count, companies_count])
+        )
+        print(f"passing workflows: {workflows}")
         dataset_spec = DatasetSpec(
-            people_count=people_count, companies_count=companies_count
+            people_count=people_count,
+            companies_count=companies_count,
+            workflows=workflows,
         )
         print(f"added {people_count} people and {companies_count} companies")
 
@@ -260,9 +266,16 @@ class EarthCLI:
             # Create and execute workflow
             if workflow_name == "full_dataset":
                 dataset_spec = parameters
+                print("*" * 60)
+                print("debug log")
+                print(f"workflow_name: {workflow_name}")
+                print(f"config: {config}")
+                print(f"db_config: {self.db_config}")
+                print(f"dataset_spec: {dataset_spec}")
                 workflow = create_workflow_from_name(
                     workflow_name, config, self.db_config, dataset_spec=dataset_spec
                 )
+                print("got here")
 
                 print(f"\n🚀 Starting full dataset generation...")
                 print(f"   • People: {dataset_spec.people_count:,}")

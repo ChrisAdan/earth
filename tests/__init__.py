@@ -39,7 +39,7 @@ __all__ = [
     "TEST_BATCH_SIZE",
     "run_test_suite",
     "check_test_environment",
-    "run_test_suite"
+    "run_test_suite",
 ]
 
 

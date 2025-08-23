@@ -7,6 +7,10 @@ SCRIPTS_DIR := scripts
 # Default target
 help:
 	@echo "🌍 Earth Data Generator - Available Commands:"
+	@echo "Author: Chris Adan"
+	@echo "Github: https://github.com/ChrisAdan/earth/tree/main"
+	@echo ""
+	@echo "  hello	   - Say hi"
 	@echo ""
 	@echo "Setup & Installation:"
 	@echo "  setup     - Initial project setup (create venv, install dependencies)"
@@ -39,6 +43,9 @@ help:
 	@echo "  stats     - Show database statistics"
 	@echo "  clean     - Clean up generated files and databases"
 	@echo ""
+
+hello:
+	@echo "Hello, world!"
 
 # Setup virtual environment and install dependencies
 setup:

@@ -85,32 +85,178 @@ class WorkflowStep:
         self.end_time = time.time()
 
 
+# File: app/workflows/dataset_orchestrator.py - Updated DatasetSpec class
+
+from typing import List, Dict, Any, Optional
+from dataclasses import dataclass, field
+from enum import Enum
+import time
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from .base import (
+    BaseWorkflow,
+    WorkflowConfig,
+    WorkflowResult,
+    WorkflowStatus,
+    register_workflow,
+)
+from .config import (
+    AVAILABLE_WORKFLOWS,
+    get_workflow_dependencies,
+    validate_full_dataset_ratios,
+)
+from .unified_workflow import UnifiedWorkflowRegistry
+from earth.core.loader import DatabaseConfig
+
+
 @dataclass
 class DatasetSpec:
     """Specification for dataset generation with dependency management."""
 
-    people_count: Optional[int] = None
-    companies_count: Optional[int] = None
+    # Primary way to specify workflows - this is the main interface
     workflows: Dict[str, int] = field(default_factory=dict)
     dependencies: Dict[str, List[str]] = field(default_factory=dict)
+
+    # Legacy support - will be converted to workflows dict
+    people_count: Optional[int] = None
+    companies_count: Optional[int] = None
+
+    # Additional configuration
     parallel_groups: List[List[str]] = field(default_factory=list)
     description: str = "Custom dataset"
 
     # Validation rules
-    min_ratio_people_to_companies: float = MIN_RATIO_PEOPLE_TO_COMPANIES
-    max_ratio_people_to_companies: float = MAX_RATIO_PEOPLE_TO_COMPANIES
+    min_ratio_people_to_companies: float = 5.0
+    max_ratio_people_to_companies: float = 50.0
+
+    def __post_init__(self):
+        """Post-initialization to handle legacy parameters and set defaults."""
+        # Handle legacy people_count/companies_count parameters
+        if self.people_count is not None or self.companies_count is not None:
+            if self.workflows:
+                raise ValueError(
+                    "Cannot specify both workflows dict and legacy people_count/companies_count"
+                )
+
+            # Convert legacy parameters to workflows dict
+            if self.companies_count is not None:
+                self.workflows["companies"] = self.companies_count
+            if self.people_count is not None:
+                self.workflows["people"] = self.people_count
+
+            # Clear legacy parameters after conversion
+            self.people_count = None
+            self.companies_count = None
+
+        # Set default dependencies if not specified
+        if not self.dependencies and self.workflows:
+            default_deps = get_workflow_dependencies()
+            for workflow_name in self.workflows:
+                if workflow_name in default_deps:
+                    self.dependencies[workflow_name] = default_deps[workflow_name]
+
+    @classmethod
+    def from_template(cls, template_name: str) -> "DatasetSpec":
+        """
+        Create DatasetSpec from a predefined template.
+
+        Args:
+            template_name: Name of template from DATASET_TEMPLATES
+
+        Returns:
+            DatasetSpec instance
+        """
+        from .config import DATASET_TEMPLATES
+
+        if template_name not in DATASET_TEMPLATES:
+            available = list(DATASET_TEMPLATES.keys())
+            raise ValueError(
+                f"Unknown template '{template_name}'. Available: {available}"
+            )
+
+        template = DATASET_TEMPLATES[template_name]
+
+        return cls(
+            workflows=template["workflows"].copy(),
+            dependencies=template.get("dependencies", {}).copy(),
+            description=template["description"],
+        )
+
+    @classmethod
+    def from_counts(cls, **workflow_counts) -> "DatasetSpec":
+        """
+        Create DatasetSpec from workflow counts.
+
+        Args:
+            **workflow_counts: Keyword arguments like people=1000, companies=100
+
+        Returns:
+            DatasetSpec instance
+        """
+        # Convert workflow counts to workflows dict
+        workflows = {}
+        for workflow_name, count in workflow_counts.items():
+            if workflow_name in AVAILABLE_WORKFLOWS:
+                workflows[workflow_name] = count
+            else:
+                available = list(AVAILABLE_WORKFLOWS.keys())
+                raise ValueError(
+                    f"Unknown workflow '{workflow_name}'. Available: {available}"
+                )
+
+        return cls(workflows=workflows)
+
+    @classmethod
+    def for_full_dataset(cls, **workflow_counts) -> "DatasetSpec":
+        """
+        Create DatasetSpec specifically for full dataset generation.
+        Uses defaults if counts not provided.
+
+        Args:
+            **workflow_counts: Optional workflow counts (people=1000, companies=100, etc.)
+
+        Returns:
+            DatasetSpec instance with full dataset configuration
+        """
+        from .config import get_full_dataset_defaults
+
+        # Start with defaults
+        defaults = get_full_dataset_defaults()
+        workflows = defaults["workflows"].copy()
+        dependencies = defaults["dependencies"].copy()
+
+        # Override with provided counts
+        for workflow_name, count in workflow_counts.items():
+            if workflow_name in AVAILABLE_WORKFLOWS:
+                workflows[workflow_name] = count
+            else:
+                available = list(AVAILABLE_WORKFLOWS.keys())
+                raise ValueError(
+                    f"Unknown workflow '{workflow_name}'. Available: {available}"
+                )
+
+        return cls(
+            workflows=workflows,
+            dependencies=dependencies,
+            description="Full synthetic dataset",
+        )
 
     def validate(self) -> None:
         """Validate dataset specification."""
         if not self.workflows:
             raise ValueError("Must specify at least one workflow")
+
         for workflow_name, count in self.workflows.items():
             if count <= 0:
                 raise ValueError(f"Record count must be positive for {workflow_name}")
-            supported_workflows = AVAILABLE_WORKFLOWS.keys()
-            if workflow_name not in supported_workflows:
+            if workflow_name not in AVAILABLE_WORKFLOWS:
+                supported_workflows = list(AVAILABLE_WORKFLOWS.keys())
+                supported_workflows.remove(
+                    "full_dataset"
+                )  # full_dataset is not a leaf workflow
                 raise ValueError(
-                    f"Received unexpected workflow {workflow_name}. Available workflows: {supported_workflows}"
+                    f"Unknown workflow '{workflow_name}'. Available workflows: {supported_workflows}"
                 )
 
         # Validate dependencies reference actual workflows
@@ -122,6 +268,18 @@ class DatasetSpec:
             for dep in deps:
                 if dep not in self.workflows:
                     raise ValueError(f"Dependency '{dep}' not in workflows")
+
+        # Check workflow ratios and warn if needed
+        warnings = validate_full_dataset_ratios(self.workflows)
+        if warnings:
+            import warnings as warn_module
+
+            for warning in warnings:
+                warn_module.warn(warning, UserWarning)
+
+    def get_total_records(self) -> int:
+        """Get total number of records that will be generated."""
+        return sum(self.workflows.values())
 
     def get_execution_order(self) -> List[List[str]]:
         """
@@ -153,6 +311,23 @@ class DatasetSpec:
             remaining_workflows -= set(ready_workflows)
 
         return execution_groups
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "workflows": self.workflows,
+            "dependencies": self.dependencies,
+            "description": self.description,
+            "total_records": self.get_total_records(),
+            "execution_order": self.get_execution_order(),
+        }
+
+    def __str__(self) -> str:
+        """String representation."""
+        workflows_str = ", ".join(
+            [f"{name}: {count:,}" for name, count in self.workflows.items()]
+        )
+        return f"DatasetSpec({self.description}) - {workflows_str}"
 
 
 class DatasetOrchestrator:

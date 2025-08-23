@@ -28,6 +28,7 @@ from .unified_workflow import (
 
 # Constant configs
 from .config import (
+    ENTITY_WORKFLOWS,
     AVAILABLE_WORKFLOWS,
     WORKFLOW_CONFIGS,
     DATASET_TEMPLATES,
@@ -54,6 +55,8 @@ from earth.generators.factory import (
 
 # Auto-register workflows when package is imported
 # This ensures all workflows are available in the registry
+
+########################################################### ->> restart here, need to replace with new __init__
 
 __all__ = [
     # Base classes
@@ -82,8 +85,12 @@ __all__ = [
     "get_workflow_info",
     "list_available_workflows",
     "create_workflow_from_name",
+    "create_dataset_workflow",
     "get_system_info",
     "print_system_summary",
+    "quick_generate_full_dataset",
+    # Constants
+    "ENTITY_WORKFLOWS",
     "AVAILABLE_WORKFLOWS",
     "WORKFLOW_CONFIGS",
     "DATASET_TEMPLATES",
@@ -141,11 +148,22 @@ def create_workflow_from_name(
     if workflow_name == "full_dataset":
         # Special handling for full dataset workflow
         dataset_spec = kwargs.get("dataset_spec")
+
         if not dataset_spec:
-            raise ValueError("full_dataset workflow requires dataset_spec parameter")
+            # If no dataset_spec provided, create a default one
+            # This handles the case where CLI doesn't pass dataset_spec correctly
+            from .dataset_orchestrator import DatasetSpec
+
+            dataset_spec = DatasetSpec.for_full_dataset()
+
+        if not isinstance(dataset_spec, DatasetSpec):
+            raise ValueError(
+                f"full_dataset workflow requires DatasetSpec instance, got {type(dataset_spec)}"
+            )
 
         return DatasetWorkflow(config, db_config, dataset_spec=dataset_spec)
 
+    # Handle other workflows through unified registry
     return UnifiedWorkflowRegistry.create_workflow(
         workflow_name, config, db_config, **kwargs
     )
@@ -156,48 +174,49 @@ def create_dataset_workflow(
     custom_spec: Optional[DatasetSpec] = None,
     config: Optional[WorkflowConfig] = None,
     db_config=None,
-    **kwargs,
+    **workflow_counts,
 ) -> DatasetWorkflow:
     """
-    Create a dataset workflow from template or custom specification.
+    Create a dataset workflow from template, custom specification, or workflow counts.
 
     Args:
         template_name: Name of predefined template
         custom_spec: Custom dataset specification
         config: Base workflow configuration
         db_config: Database configuration
-        **kwargs: Additional arguments
+        **workflow_counts: Direct workflow counts (people=1000, companies=100)
 
     Returns:
         DatasetWorkflow instance
 
     Raises:
-        ValueError: If neither template nor spec provided
+        ValueError: If parameters are invalid
     """
-    if template_name and custom_spec:
-        raise ValueError("Provide either template_name or custom_spec, not both")
+    # Count how many ways the user is trying to specify the dataset
+    spec_methods = sum(
+        [template_name is not None, custom_spec is not None, bool(workflow_counts)]
+    )
 
-    if not template_name and not custom_spec:
-        raise ValueError("Must provide either template_name or custom_spec")
+    if spec_methods == 0:
+        raise ValueError("Must provide template_name, custom_spec, or workflow counts")
+    if spec_methods > 1:
+        raise ValueError(
+            "Provide only one of: template_name, custom_spec, or workflow counts"
+        )
 
     # Use default config if none provided
     if config is None:
         config = WorkflowConfig()
 
-    # Create spec from template if needed
+    # Create spec based on input method
     if template_name:
-        if template_name not in DATASET_TEMPLATES:
-            available = list(DATASET_TEMPLATES.keys())
-            raise ValueError(
-                f"Unknown template '{template_name}'. Available: {available}"
-            )
+        dataset_spec = DatasetSpec.from_template(template_name)
+    elif custom_spec:
+        dataset_spec = custom_spec
+    else:  # workflow_counts provided
+        dataset_spec = DatasetSpec.for_full_dataset(**workflow_counts)
 
-        template = DATASET_TEMPLATES[template_name]
-        custom_spec = DatasetSpec(
-            workflows=template["workflows"],
-        )
-
-    return DatasetWorkflow(config, db_config, custom_spec, **kwargs)
+    return DatasetWorkflow(config, db_config, dataset_spec)
 
 
 def get_template_info(template_name: str) -> dict:
@@ -325,36 +344,47 @@ def quick_generate_companies(
     return generator.generate_batch_dicts(count)
 
 
-def quick_generate_dataset(
-    template: str = "small_demo", seed: Optional[int] = None
+def quick_generate_full_dataset(
+    template: str = None, seed: Optional[int] = None, **workflow_counts
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Quick function to generate a complete dataset without database storage.
 
     Args:
-        template: Dataset template to use
+        template: Dataset template to use (optional)
         seed: Random seed for reproducible results
+        **workflow_counts: Direct workflow counts (people=1000, companies=100)
 
     Returns:
         Dictionary with entity types as keys and lists of records as values
     """
-    if template not in DATASET_TEMPLATES:
-        raise ValueError(f"Unknown template: {template}")
+    # Determine dataset specification
+    if template:
+        if template not in DATASET_TEMPLATES:
+            raise ValueError(f"Unknown template: {template}")
+        dataset_spec = DatasetSpec.from_template(template)
+    elif workflow_counts:
+        dataset_spec = DatasetSpec.for_full_dataset(**workflow_counts)
+    else:
+        # Use small demo template as default
+        dataset_spec = DatasetSpec.from_template("small_demo")
 
-    template_info = DATASET_TEMPLATES[template]
     result = {}
 
-    # Generate companies first
-    config = GeneratorConfig(seed=seed)
-    company_generator = create_generator("company", config)
-    result["company"] = company_generator.generate_batch_dicts(
-        template_info["workflows"]["companies"]
-    )
+    # Generate data for each workflow in execution order
+    execution_groups = dataset_spec.get_execution_order()
 
-    # Generate people
-    person_generator = create_generator("person", config)
-    result["person"] = person_generator.generate_batch_dicts(
-        template_info["workflows"]["people"]
-    )
+    for group in execution_groups:
+        for workflow_name in group:
+            count = dataset_spec.workflows[workflow_name]
+
+            # Map workflow name to entity type
+            entity_mappings = {"people": "person", "companies": "company"}
+            entity_type = entity_mappings.get(workflow_name, workflow_name)
+
+            # Generate data
+            config = GeneratorConfig(seed=seed)
+            generator = create_generator(entity_type, config)
+            result[entity_type] = generator.generate_batch_dicts(count)
 
     return result
