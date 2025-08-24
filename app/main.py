@@ -147,6 +147,7 @@ class EarthCLI:
             while True:
                 try:
                     workflow_display = workflow_name.replace('_', ' ').title()
+                    print(f' workflow_display: {workflow_display}')
                     prompt = f"Number of {workflow_display.lower()} to generate (default: {default_count:,}): "
                     count_input = input(prompt).strip()
                     count = int(count_input) if count_input else default_count
@@ -161,30 +162,22 @@ class EarthCLI:
                 except ValueError:
                     print("❌ Please enter a valid number")
 
-        print('1. got here')
-        print(f'workflow_counts: {workflow_counts}')
         # Validate ratios and relationships
         warnings = validate_full_dataset_ratios(workflow_counts)
-        print('### 2.')
-        print(f'{warnings}')
         if warnings:
             print(f"\n⚠️  Configuration warnings:")
             for warning in warnings:
                 print(f"   • {warning}")
-            print(f'asked for confirm choice')
             confirm = input("Continue anyway? (y/N): ").strip().lower()
-            print(f'received confirm choice; {confirm}')
             if confirm not in ["y", "yes"]:
-                print(f'##### 3. confirm not accepted')
                 return self._get_full_dataset_parameters()  # Restart
         # Create DatasetSpec using the new factory method
         dataset_spec = DatasetSpec.for_full_dataset(**workflow_counts)
-        print(f'dataset_spec: {dataset_spec}')
         print(f"\n✅ Configuration summary:")
         for workflow_name, count in workflow_counts.items():
             print(f"   • {workflow_name.title()}: {count:,} records")
         print(f"   • Total records: {dataset_spec.get_total_records():,}")
-
+        print(f'dataset_specs: {dataset_spec.people_count} (ppl); {dataset_spec.companies_count} (comps)')
         return dataset_spec, write_mode
 
     def _get_single_workflow_parameters(self, workflow_name: str) -> tuple:

@@ -235,7 +235,6 @@ class DatasetSpec:
                 raise ValueError(
                     f"Unknown workflow '{workflow_name}'. Available: {available}"
                 )
-
         return cls(
             workflows=workflows,
             dependencies=dependencies,

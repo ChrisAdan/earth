@@ -43,8 +43,6 @@ class TestReportExporter:
     ) -> None:
         """Helper to write supported file types to disk"""
         with open(path, operation, encoding=encoding) as f:
-            print(f"f is type: {type(f)}")
-            print(f"Writing type: {type}")
             if variant in ["html", "markdown"]:
                 f.write(content)
             elif variant in ["json"]:

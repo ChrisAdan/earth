@@ -37,7 +37,7 @@ AVAILABLE_WORKFLOWS = {
     },
 }
 
-# Dataset templates for common use cases - UPDATED
+# Dataset templates for common use cases
 DATASET_TEMPLATES = {
     "small_demo": {
         "description": "Small dataset for demos and testing",
@@ -56,7 +56,7 @@ DATASET_TEMPLATES = {
     },
 }
 
-# Core workflow configurations - UPDATED to match actual implementation
+# Core workflow configurations
 WORKFLOW_CONFIGS = {
     "people": {
         "entity_type": "person",
