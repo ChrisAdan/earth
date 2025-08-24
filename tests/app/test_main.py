@@ -100,10 +100,10 @@ def test_single_workflow_parameters():
                 assert mode in ["append", "truncate"], "Should return valid write mode"
         print(f"Successful test with default count")
         # Test with custom count
-        with patch(
-            "builtins.input", side_effect=["1", "50", "1"]
-        ):  # Custom count, append mode
-            with patch("builtins.print"):
+        with patch("builtins.print"):
+            with patch(
+                "builtins.input", side_effect=["1", "50", "1"]
+            ):  # Custom count, append mode
                 count, mode = cli.get_workflow_parameters("companies")
                 assert count == 50, "Should use custom count"
                 assert mode == "append", "Should use append mode"
@@ -129,21 +129,22 @@ def test_full_dataset_parameters():
         cli.initialize_database()
 
         # Test valid dataset parameters
+        # with patch("builtins.print"):
         with patch(
             "builtins.input", side_effect=["1", "100", "10"]
         ):  # People, companies
-            with patch("builtins.print"):
-                spec, mode = cli.get_workflow_parameters("full_dataset")
-                assert isinstance(spec, DatasetSpec), "Should return DatasetSpec"
-                assert spec.people_count == 100, "Should have correct people count"
-                assert spec.companies_count == 10, "Should have correct company count"
-                assert mode in ["append", "truncate"], "Should have valid write mode"
+            spec, mode = cli.get_workflow_parameters("full_dataset")
+            # print('1. got here')
+            assert isinstance(spec, DatasetSpec), "Should return DatasetSpec"
+            assert spec.people_count == 100, "Should have correct people count"
+            assert spec.companies_count == 10, "Should have correct company count"
+            assert mode in ["append", "truncate"], "Should have valid write mode"
         # Test with defaults
-        with patch("builtins.input", side_effect=["1", "", ""]):  # Use defaults
-            with patch("builtins.print"):
-                spec, mode = cli.get_workflow_parameters("full_dataset")
-                assert spec.people_count == 1000, "Should use default people count"
-                assert spec.companies_count == 100, "Should use default company count"
+        with patch("builtins.input", side_effect=["1", "", "", 'y']):  # Use defaults
+            spec, mode = cli.get_workflow_parameters("full_dataset")
+            # print('got here')
+            assert spec.people_count == 1000, "Should use default people count"
+            assert spec.companies_count == 100, "Should use default company count"
 
         # Cleanup
         if cli.conn:

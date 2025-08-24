@@ -39,7 +39,7 @@ from .workflows import (
     # Quick generation functions
     quick_generate_people,
     quick_generate_companies,
-    quick_generate_dataset,
+    quick_generate_full_dataset,
     # Configuration and templates
     AVAILABLE_WORKFLOWS,
     WORKFLOW_CONFIGS,
@@ -75,7 +75,7 @@ __all__ = [
     # Quick Generation
     "quick_generate_people",
     "quick_generate_companies",
-    "quick_generate_dataset",
+    "quick_generate_full_dataset",
     # Configuration
     "AVAILABLE_WORKFLOWS",
     "WORKFLOW_CONFIGS",
@@ -144,7 +144,7 @@ def generate_custom_dataset(
         >>> print(f"Generated {len(dataset['person'])} people and {len(dataset['company'])} companies")
     """
     if template_name:
-        return quick_generate_dataset(template_name, seed)
+        return quick_generate_full_dataset(template_name, seed)
     else:
         # Create temporary template
         temp_template = {

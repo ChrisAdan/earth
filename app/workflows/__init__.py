@@ -55,8 +55,6 @@ from earth.generators.factory import (
 # Auto-register workflows when package is imported
 # This ensures all workflows are available in the registry
 
-########################################################### ->> restart here, need to replace with new __init__
-
 __all__ = [
     # Base classes
     "BaseWorkflow",
@@ -89,7 +87,6 @@ __all__ = [
     "print_system_summary",
     "quick_generate_full_dataset",
     # Constants
-    "ENTITY_WORKFLOWS",
     "AVAILABLE_WORKFLOWS",
     "WORKFLOW_CONFIGS",
     "DATASET_TEMPLATES",

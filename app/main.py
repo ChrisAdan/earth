@@ -28,7 +28,6 @@ from earth.core.loader import (
 from workflows import (
     WorkflowConfig,
     DatasetSpec,
-    ENTITY_WORKFLOWS,
     AVAILABLE_WORKFLOWS,
     get_workflow_info,
     create_workflow_from_name,
@@ -140,7 +139,7 @@ class EarthCLI:
         workflow_counts = {}
         
         print(f"\n📋 Dataset Size Configuration:")
-        
+        print(f'Defaults: {defaults}')
         # Dynamic workflow configuration based on available workflows
         for workflow_name in defaults["workflows"]:
             default_count = defaults["workflows"][workflow_name]
@@ -162,20 +161,25 @@ class EarthCLI:
                 except ValueError:
                     print("❌ Please enter a valid number")
 
+        print('1. got here')
+        print(f'workflow_counts: {workflow_counts}')
         # Validate ratios and relationships
         warnings = validate_full_dataset_ratios(workflow_counts)
+        print('### 2.')
+        print(f'{warnings}')
         if warnings:
             print(f"\n⚠️  Configuration warnings:")
             for warning in warnings:
                 print(f"   • {warning}")
-            
+            print(f'asked for confirm choice')
             confirm = input("Continue anyway? (y/N): ").strip().lower()
+            print(f'received confirm choice; {confirm}')
             if confirm not in ["y", "yes"]:
+                print(f'##### 3. confirm not accepted')
                 return self._get_full_dataset_parameters()  # Restart
-
         # Create DatasetSpec using the new factory method
         dataset_spec = DatasetSpec.for_full_dataset(**workflow_counts)
-        
+        print(f'dataset_spec: {dataset_spec}')
         print(f"\n✅ Configuration summary:")
         for workflow_name, count in workflow_counts.items():
             print(f"   • {workflow_name.title()}: {count:,} records")

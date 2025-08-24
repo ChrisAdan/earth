@@ -29,7 +29,7 @@ try:
         validate_dataset_spec,
         quick_generate_people,
         quick_generate_companies,
-        quick_generate_dataset,
+        quick_generate_full_dataset,
     )
     from workflows.dataset_orchestrator import (
         DatasetOrchestrator,
@@ -301,7 +301,7 @@ def test_quick_generation_functions():
         assert "industry" in companies_data[0], "Should have industry field"
 
         # Test quick dataset generation
-        dataset = quick_generate_dataset("small_demo", seed=444)
+        dataset = quick_generate_full_dataset("small_demo", seed=444)
         assert "person" in dataset, "Should have person data"
         assert "company" in dataset, "Should have company data"
         assert len(dataset["person"]) > 0, "Should have person records"
