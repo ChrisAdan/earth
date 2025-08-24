@@ -18,7 +18,7 @@ sys.path.extend(
 def generate_people(count: int, verbose: bool = False) -> None:
     """Generate sample people data."""
     try:
-        from workflows import WorkflowConfig, PeopleWorkflow, WorkflowResult
+        from workflows import quick_generate_people, WorkflowConfig, PeopleWorkflow, WorkflowResult
         from earth.core.loader import DatabaseConfig
 
         print(f"👥 Generating {count} person records...")
@@ -103,6 +103,7 @@ def main():
         # Generate complete dataset
         generate_people(args.count or 100, args.verbose)
         generate_companies(args.count or 20, args.verbose)
+
 
 
 if __name__ == "__main__":

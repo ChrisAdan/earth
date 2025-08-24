@@ -392,7 +392,7 @@ run:
 # List available workflows
 workflows:
 	@echo "📋 Available Earth Workflows:"
-	@python -c "import sys; sys.path.insert(0, 'app'); from workflows import AVAILABLE_WORKFLOWS; [print(f'  • {name}: {info[\"description\"]}') for name, info in AVAILABLE_WORKFLOWS.items()]"
+	@cd $(PWD) && python $(SCRIPTS_DIR)/main/workflows.py
 
 # Development workflow - install and run essential tests
 dev-test: install test-quick
@@ -418,21 +418,15 @@ sample-people:
 # Generate sample companies data (20 records)
 sample-companies:
 	@echo "🏢 Generating sample companies dataset (20 records)..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); from workflows import WorkflowConfig, CompaniesWorkflow; from earth.core.loader import DatabaseConfig; config = WorkflowConfig(batch_size=10, seed=42, write_mode='truncate'); workflow = CompaniesWorkflow(config, DatabaseConfig.for_dev()); result = workflow.execute(20); print(f'✅ Generated {result.records_generated} company records in {result.execution_time:.1f}s')"
+	@python $(SCRIPTS_DIR)/data/sample.py --type companies --count 20 -v
 
 # Generate complete sample dataset using template
 sample-dataset:
 	@echo "🌍 Generating sample dataset from template..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); \
-	from workflows import create_dataset_workflow, WorkflowConfig; \
-	from earth.core.loader import DatabaseConfig; \
-	config = WorkflowConfig(batch_size=25, seed=42, write_mode='truncate'); \
-	workflow = create_dataset_workflow('small_demo', config=config, db_config=DatabaseConfig.for_dev()); \
-	result = workflow.execute(); \
-	summary = workflow.get_execution_summary(); \
-	print(f'✅ Generated template dataset: {summary[\"execution_summary\"][\"total_records_generated\"]} total records in {summary[\"execution_summary\"][\"overall_duration\"]:.1f}s')"
+	@python $(SCRIPTS_DIR)/data/sample.py --type dataset --count 20 -v
 
-# Alternative: Generate from template (cleaner approach)
+
+# Alternative: Generate from template 
 sample-dataset-template:
 	@echo "🌍 Generating sample dataset from template..."
 	@python -c "import sys; sys.path.extend(['src', 'app']); \
@@ -505,12 +499,8 @@ sample-dataset-extended:
 # Show database statistics for all tables
 stats:
 	@echo "📈 Database Statistics:"
-	@echo ""
-	@echo "📊 People Table:"
-	@python -c "import sys; sys.path.insert(0, 'src'); from earth.core.loader import connect_to_duckdb, operate_on_table, DatabaseConfig; conn = connect_to_duckdb(DatabaseConfig.for_dev()); result = operate_on_table(conn, 'raw', 'persons', 'read', query='SELECT COUNT(*) as total_persons, MIN(age) as min_age, MAX(age) as max_age, AVG(age) as avg_age FROM raw.persons'); print(result.to_string(index=False)) if not result.empty else print('No person data found'); conn.close()" 2>/dev/null || echo "No person data found"
-	@echo ""
-	@echo "🏢 Companies Table:"
-	@python -c "import sys; sys.path.insert(0, 'src'); from earth.core.loader import connect_to_duckdb, operate_on_table, DatabaseConfig; conn = connect_to_duckdb(DatabaseConfig.for_dev()); result = operate_on_table(conn, 'raw', 'companies', 'read', query='SELECT COUNT(*) as total_companies, AVG(employee_count) as avg_employees, COUNT(DISTINCT industry) as unique_industries FROM raw.companies'); print(result.to_string(index=False)) if not result.empty else print('No company data found'); conn.close()" 2>/dev/null || echo "No company data found"
+	@cd $(PWD) && python $(SCRIPTS_DIR)/data/stats.py
+
 
 # ============================================================================
 # PRODUCTION WORKFLOWS
