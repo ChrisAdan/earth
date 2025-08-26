@@ -57,7 +57,7 @@ def test_workflow_choice_validation():
         cli = EarthCLI()
 
         # Mock user inputs - valid choice
-        with patch('builtins.print'):
+        with patch("builtins.print"):
             with patch("builtins.input", return_value="1"):
                 choice = cli.get_workflow_choice()
                 assert choice in [
@@ -136,15 +136,25 @@ def test_full_dataset_parameters():
             ):  # People, companies
                 spec, mode = cli.get_workflow_parameters("full_dataset")
                 assert isinstance(spec, DatasetSpec), "Should return DatasetSpec"
-                assert spec.workflows['people'] == 100, "Should have correct people count"
-                assert spec.workflows['companies'] == 10, "Should have correct company count"
+                assert (
+                    spec.workflows["people"] == 100
+                ), "Should have correct people count"
+                assert (
+                    spec.workflows["companies"] == 10
+                ), "Should have correct company count"
                 assert mode in ["append", "truncate"], "Should have valid write mode"
             # Test with defaults
-            with patch("builtins.input", side_effect=["1", "", "", 'y']):  # Use defaults
+            with patch(
+                "builtins.input", side_effect=["1", "", "", "y"]
+            ):  # Use defaults
                 spec, mode = cli.get_workflow_parameters("full_dataset")
                 # print('got here')
-                assert spec.workflows['people'] == 1000, "Should use default people count"
-                assert spec.workflows['companies'] == 100, "Should use default company count"
+                assert (
+                    spec.workflows["people"] == 1000
+                ), "Should use default people count"
+                assert (
+                    spec.workflows["companies"] == 100
+                ), "Should use default company count"
 
         # Cleanup
         if cli.conn:

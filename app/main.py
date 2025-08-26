@@ -98,10 +98,15 @@ class EarthCLI:
 
     def _get_full_dataset_parameters(self) -> tuple:
         """Get parameters for full dataset generation."""
-        from workflows.config import get_full_dataset_defaults, validate_full_dataset_ratios
-        
+        from workflows.config import (
+            get_full_dataset_defaults,
+            validate_full_dataset_ratios,
+        )
+
         print("\n📊 Full Dataset Configuration:")
-        print("   This will generate a complete synthetic dataset with multiple entity types")
+        print(
+            "   This will generate a complete synthetic dataset with multiple entity types"
+        )
 
         # Check existing data across all relevant tables - !refactor later
         tables_to_check = ["persons", "companies"]
@@ -127,7 +132,9 @@ class EarthCLI:
                     write_mode = "truncate"
                     break
                 elif choice == "2":
-                    print("💡 Tip: Choose 'people' or 'companies' workflow for individual entity generation")
+                    print(
+                        "💡 Tip: Choose 'people' or 'companies' workflow for individual entity generation"
+                    )
                     return None, None
                 else:
                     print("❌ Please enter 1 or 2")
@@ -137,28 +144,28 @@ class EarthCLI:
         # Get default configuration
         defaults = get_full_dataset_defaults()
         workflow_counts = {}
-        
+
         print(f"\n📋 Dataset Size Configuration:")
-        print(f'Defaults: {defaults}')
+        print(f"Defaults: {defaults}")
         # Dynamic workflow configuration based on available workflows
         for workflow_name in defaults["workflows"]:
             default_count = defaults["workflows"][workflow_name]
-            
+
             while True:
                 try:
-                    workflow_display = workflow_name.replace('_', ' ').title()
-                    print(f' workflow_display: {workflow_display}')
+                    workflow_display = workflow_name.replace("_", " ").title()
+                    print(f" workflow_display: {workflow_display}")
                     prompt = f"Number of {workflow_display.lower()} to generate (default: {default_count:,}): "
                     count_input = input(prompt).strip()
                     count = int(count_input) if count_input else default_count
-                    
+
                     if count <= 0:
                         print("❌ Please enter a positive number")
                         continue
-                    
+
                     workflow_counts[workflow_name] = count
                     break
-                    
+
                 except ValueError:
                     print("❌ Please enter a valid number")
 
@@ -177,7 +184,9 @@ class EarthCLI:
         for workflow_name, count in workflow_counts.items():
             print(f"   • {workflow_name.title()}: {count:,} records")
         print(f"   • Total records: {dataset_spec.get_total_records():,}")
-        print(f'dataset_specs: {dataset_spec.people_count} (ppl); {dataset_spec.companies_count} (comps)')
+        print(
+            f"dataset_specs: {dataset_spec.people_count} (ppl); {dataset_spec.companies_count} (comps)"
+        )
         return dataset_spec, write_mode
 
     def _get_single_workflow_parameters(self, workflow_name: str) -> tuple:
@@ -257,16 +266,16 @@ class EarthCLI:
             # Create and execute workflow
             if workflow_name == "full_dataset":
                 dataset_spec = parameters
-                print('*'*60)
+                print("*" * 60)
                 print("debug log")
-                print(f'workflow_name: {workflow_name}')
-                print(f'config: {config}')
-                print(f'db_config: {self.db_config}')
-                print(f'dataset_spec: {dataset_spec}')
+                print(f"workflow_name: {workflow_name}")
+                print(f"config: {config}")
+                print(f"db_config: {self.db_config}")
+                print(f"dataset_spec: {dataset_spec}")
                 workflow = create_workflow_from_name(
                     workflow_name, config, self.db_config, dataset_spec=dataset_spec
                 )
-                print('got here')
+                print("got here")
 
                 print(f"\n🚀 Starting full dataset generation...")
                 print(f"   • People: {dataset_spec.people_count:,}")

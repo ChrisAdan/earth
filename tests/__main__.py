@@ -156,7 +156,6 @@ class TestSuiteManager:
 
     def run_all_tests(self, verbose: bool = False) -> Dict[str, bool]:
         """Run all tests across all categories."""
-        print("🌍 Running Complete Earth Test Suite")
         print("=" * 60)
 
         results = {}
@@ -232,7 +231,6 @@ test_manager = TestSuiteManager()
 
 def run_quick_smoke_test() -> bool:
     """Run a quick smoke test to verify basic functionality."""
-    print("🚀 Running quick smoke test...")
 
     try:
         # Test core imports

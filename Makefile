@@ -85,7 +85,7 @@ help-test:
 	@echo "🎯 Test Categories:"
 	@echo "   make test-core       - Core functionality (database, utilities)"
 	@echo "   make test-generators - Data generators (person, company, career)"
-	@echo "   make test-modules    - Optional modules (companies, campaigns, automotive)"
+	@echo "   make test-modules    - Optional modules (campaigns, automotive)"
 	@echo "   make test-app        - Application layer (workflows, orchestration)"
 	@echo ""
 	@echo "⚡ Execution Modes:"
@@ -119,27 +119,29 @@ help-sample:
 	@echo "=================================="
 	@echo ""
 	@echo "🚀 Quick Samples (for testing):"
-	@echo "   make sample-people       - Generate 100 person records"
-	@echo "   make sample-companies    - Generate 20 company records"
-	@echo "   make sample-dataset      - Complete mini dataset (template-based)"
+	@echo "   make sample-people       - Generate 100 person records (quick_generate_people)"
+	@echo "   make sample-companies    - Generate 20 company records (quick_generate_companies)"
+	@echo "   make sample-dataset      - Complete mini dataset (quick_generate_full_dataset)"
 	@echo ""
-	@echo "🎯 Dataset Generation Options:"
-	@echo "   make sample-dataset-template  - Generate from 'small_demo' template"
-	@echo "   make sample-dataset-custom    - Custom sized dataset (150 people, 15 companies)"
-	@echo "   make sample-dataset-memory    - Quick in-memory generation (no database)"
-	@echo "   make sample-dataset-extended  - Extended dataset with validation"
+	@echo "🎯 Template-Based Generation:"
+	@echo "   make sample-templates    - List all available dataset templates"
+	@echo "   make sample-small        - Generate from 'small_demo' template"
+	@echo "   make sample-medium       - Generate from 'medium_dev' template"
+	@echo "   make sample-large        - Generate from 'large_production' template"
 	@echo ""
-	@echo "📈 Available Templates:"
-	@echo "   • small_demo    - 50 people, 10 companies"
-	@echo "   • medium_dev    - 500 people, 50 companies"
-	@echo "   • large_production - 5000 people, 200 companies"
+	@echo "📊 Custom Dataset Generation:"
+	@echo "   make sample-custom       - Custom dataset (prompts for counts)"
+	@echo "   make sample-memory       - Quick in-memory generation (no database)"
+	@echo ""
+	@echo "ℹ️  System Information:"
+	@echo "   make sample-info         - Show comprehensive system information"
 	@echo ""
 	@echo "⚙️  Configuration:"
 	@echo "   • All samples use seed=42 for reproducible results"
-	@echo "   • Data stored in earth.duckdb by default"
-	@echo "   • Batch processing optimized for performance"
+	@echo "   • Template samples generate in-memory (no database)"
+	@echo "   • Custom samples can optionally use database storage"
 	@echo ""
-	@echo "💡 Use 'make workflows' to see all available data generation workflows"
+	@echo "💡 Use --verbose (-v) flag for detailed output and sample records"
 
 # ============================================================================
 # DATABASE & DATA HELP
@@ -353,7 +355,7 @@ test-quick:
 
 # Run all tests with detailed verbose output
 test-verbose:
-	@echo "📝 Running Verbose Test Suite..."
+	@echo "🌍 Running Complete Earth Test Suite"
 	@python -m tests all --verbose
 
 # Run tests with coverage reporting
@@ -420,78 +422,52 @@ sample-companies:
 	@echo "🏢 Generating sample companies dataset (20 records)..."
 	@python $(SCRIPTS_DIR)/data/sample.py --type companies --count 20 -v
 
-# Generate complete sample dataset using template
+# Generate complete sample dataset
 sample-dataset:
-	@echo "🌍 Generating sample dataset from template..."
-	@python $(SCRIPTS_DIR)/data/sample.py --type dataset --count 20 -v
+	@echo "🌍 Generating sample dataset (in-memory)..."
+	@python $(SCRIPTS_DIR)/data/sample.py --type dataset --people 100 --companies 20 -v
 
+# List available templates
+sample-templates:
+	@echo "📋 Available Dataset Templates:"
+	@python $(SCRIPTS_DIR)/data/sample.py --type list-templates -v
 
-# Alternative: Generate from template 
-sample-dataset-template:
-	@echo "🌍 Generating sample dataset from template..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); \
-	from workflows import create_dataset_workflow, WorkflowConfig; \
-	from earth.core.loader import DatabaseConfig; \
-	config = WorkflowConfig(batch_size=25, seed=42, write_mode='truncate'); \
-	workflow = create_dataset_workflow('small_demo', config=config, db_config=DatabaseConfig.for_dev()); \
-	result = workflow.execute(); \
-	summary = workflow.get_execution_summary(); \
-	print(f'✅ Generated template dataset: {summary[\"execution_summary\"][\"total_records_generated\"]} total records in {summary[\"execution_summary\"][\"overall_duration\"]:.1f}s')"
+# Generate from specific templates
+sample-small:
+	@echo "🌍 Generating small demo dataset..."
+	@python $(SCRIPTS_DIR)/data/sample.py --type dataset --template small_demo -v
 
-# Generate custom dataset with specific counts
-sample-dataset-custom:
-	@echo "🌍 Generating custom dataset..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); \
-	from workflows import create_dataset_workflow, WorkflowConfig; \
-	from earth.core.loader import DatabaseConfig; \
-	config = WorkflowConfig(batch_size=50, seed=42, write_mode='truncate'); \
-	workflow = create_dataset_workflow(companies=15, people=150, config=config, db_config=DatabaseConfig.for_dev()); \
-	result = workflow.execute(); \
-	summary = workflow.get_execution_summary(); \
-	exec_summary = summary['execution_summary']; \
-	perf_metrics = summary['performance_metrics']; \
-	print(f'✅ Dataset complete: {exec_summary[\"total_records_generated\"]} records'); \
-	print(f'   • Duration: {exec_summary[\"overall_duration\"]:.1f}s'); \
-	print(f'   • Rate: {perf_metrics[\"average_records_per_second\"]:.0f} records/sec'); \
-	print(f'   • Workflows: {perf_metrics[\"workflows_completed\"]} completed')"
+sample-medium:
+	@echo "🌍 Generating medium development dataset..."
+	@python $(SCRIPTS_DIR)/data/sample.py --type dataset --template medium_dev -v
 
-# Quick in-memory dataset generation (no database)
-sample-dataset-memory:
-	@echo "🧠 Generating in-memory dataset..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); \
-	from workflows import quick_generate_full_dataset; \
-	import json; \
-	result = quick_generate_full_dataset(companies=5, people=25, seed=42); \
-	total_records = sum(len(records) for records in result.values()); \
-	print(f'✅ Generated in-memory dataset: {total_records} total records'); \
-	for entity_type, records in result.items(): \
-		print(f'   • {entity_type}: {len(records)} records'); \
-	print('📋 Sample company:', json.dumps(result['company'][0], indent=2, default=str) if result['company'] else 'None')"
+sample-large:
+	@echo "🌍 Generating large production dataset..."
+	@echo "⚠️  This will generate a large dataset and may take time"
+	@python $(SCRIPTS_DIR)/data/sample.py --type dataset --template large_production -v
 
-# Extended dataset with validation
-sample-dataset-extended:
-	@echo "🌍 Generating extended dataset with validation..."
-	@python -c "import sys; sys.path.extend(['src', 'app']); \
-	from workflows import WorkflowConfig, DatasetSpec, create_dataset_workflow; \
-	from workflows.config import validate_full_dataset_ratios; \
-	from earth.core.loader import DatabaseConfig; \
-	import time; \
-	start = time.time(); \
-	companies, people = 20, 200; \
-	warnings = validate_full_dataset_ratios({'companies': companies, 'people': people}); \
-	if warnings: [print(f'⚠️  {w}') for w in warnings]; \
-	config = WorkflowConfig(batch_size=50, seed=42, write_mode='truncate'); \
-	workflow = create_dataset_workflow(companies=companies, people=people, config=config, db_config=DatabaseConfig.for_dev()); \
-	result = workflow.execute(); \
-	summary = workflow.get_execution_summary(); \
-	exec_sum = summary['execution_summary']; \
-	steps = summary['workflow_steps']; \
-	print(f'\\n✅ Extended dataset complete in {time.time()-start:.1f}s total'); \
-	print(f'   • Records generated: {exec_sum[\"total_records_generated\"]}'); \
-	print(f'   • Parallel efficiency: {exec_sum[\"parallel_efficiency\"]:.2f}x'); \
-	print('\\n📊 Workflow breakdown:'); \
-	[print(f'   • {step[\"workflow_name\"]}: {step.get(\"records_generated\", 0)} records in {step[\"duration\"]:.1f}s') for step in steps if step['status'] == 'completed']"
+# NEW: Custom dataset with interactive prompts
+sample-custom:
+	@echo "🎯 Custom Dataset Generation"
+	@read -p "Number of people (default 100): " people_count; \
+	read -p "Number of companies (default 20): " companies_count; \
+	people_count=$${people_count:-100}; \
+	companies_count=$${companies_count:-20}; \
+	echo "🌍 Generating custom dataset ($$people_count people, $$companies_count companies)..."; \
+	python $(SCRIPTS_DIR)/data/sample.py --type dataset --people $$people_count --companies $$companies_count -v
 
+# NEW: Quick in-memory generation (no database)
+sample-memory:
+	@echo "🧠 Generating quick in-memory dataset..."
+	@python $(SCRIPTS_DIR)/data/sample.py --type dataset --people 50 --companies 10 -v
+
+# NEW: Show system information  
+sample-info:
+	@echo "ℹ️  Earth System Information:"
+	@python $(SCRIPTS_DIR)/data/sample.py --type system-info
+
+# REMOVE/REPLACE these old commands that manually create workflows:
+# sample-dataset-template, sample-dataset-custom, sample-dataset-memory, sample-dataset-extended
 # ============================================================================
 # DATABASE OPERATIONS
 # ============================================================================
